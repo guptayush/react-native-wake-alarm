@@ -98,3 +98,68 @@ final class NotificationScheduler {
     }
   }
 }
+
+/// Owns UNUserNotificationCenter's delegate slot for the WAKE_ALARM category only. Everything else is
+/// forwarded to whichever delegate the host had installed, and that delegate is put back on uninstall().
+@objcMembers public final class WakeAlarmNotificationProxy: NSObject, UNUserNotificationCenterDelegate {
+  public static let shared = WakeAlarmNotificationProxy()
+  private let lock = NSLock()
+  private var previous: UNUserNotificationCenterDelegate?
+
+  private override init() {}
+
+  /// Idempotent. Call from application(_:didFinishLaunchingWithOptions:) so a cold-start tap is seen;
+  /// the module also calls it when it loads, for hosts that skipped that step.
+  public func install() {
+    let center = UNUserNotificationCenter.current()
+    if center.delegate === self { return }
+    lock.lock(); previous = center.delegate; lock.unlock()
+    center.delegate = self
+  }
+
+  public func uninstall() {
+    let center = UNUserNotificationCenter.current()
+    guard center.delegate === self else { return }
+    lock.lock(); let restored = previous; previous = nil; lock.unlock()
+    center.delegate = restored
+  }
+
+  private var forwardTo: UNUserNotificationCenterDelegate? { lock.lock(); defer { lock.unlock() }; return previous }
+
+  private static func isWakeAlarm(_ content: UNNotificationContent) -> Bool {
+    content.categoryIdentifier == NotificationScheduler.categoryId
+  }
+
+  public func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    guard Self.isWakeAlarm(notification.request.content) else {
+      // A previous delegate without this method leaves the optional call nil; the system default is then "do not present".
+      if forwardTo?.userNotificationCenter?(center, willPresent: notification, withCompletionHandler: completionHandler) == nil {
+        completionHandler([])
+      }
+      return
+    }
+    // An alarm that lands while the app is open must still be seen and heard.
+    completionHandler([.banner, .list, .sound])
+  }
+
+  public func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+                                     withCompletionHandler completionHandler: @escaping () -> Void) {
+    let content = response.notification.request.content
+    guard Self.isWakeAlarm(content) else {
+      if forwardTo?.userNotificationCenter?(center, didReceive: response, withCompletionHandler: completionHandler) == nil {
+        completionHandler()
+      }
+      return
+    }
+    // The STOP action and the default tap both end the alarm from the user's point of view.
+    if let id = content.userInfo["wakeAlarmId"] as? String {
+      WakeAlarmBridge.shared.record(id: id, action: "stopped")
+    }
+    completionHandler()
+  }
+
+  public func userNotificationCenter(_ center: UNUserNotificationCenter, openSettingsFor notification: UNNotification?) {
+    forwardTo?.userNotificationCenter?(center, openSettingsFor: notification)
+  }
+}

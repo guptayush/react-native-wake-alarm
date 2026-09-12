@@ -111,15 +111,15 @@ enum AlarmKitScheduler {
     return []
   }
 
-  /// The candidate currently alerting, if any. Synchronous so getRinging() can use it.
-  static func alertingId(from candidates: [String]) -> String? {
+  /// Which of `candidates` are alerting right now. Queried once at start-up to seed the in-memory map.
+  static func alertingIds(from candidates: [String]) -> [String] {
     #if canImport(AlarmKit)
     if #available(iOS 26.0, *), let alarms = try? AlarmManager.shared.alarms {
       let alerting = Set(alarms.filter { $0.state == .alerting }.map(\.id))
-      return candidates.first { alerting.contains(WakeAlarmIds.uuid(for: $0)) }
+      return candidates.filter { alerting.contains(WakeAlarmIds.uuid(for: $0)) }
     }
     #endif
-    return nil
+    return []
   }
 
   /// Watches AlarmKit's update stream and reports alerting transitions. Returns nil below iOS 26.

@@ -1,5 +1,9 @@
 #import "WakeAlarm.h"
 
+// ObjC++ cannot @import frameworks, so the generated Swift header needs this spelled out for the
+// UNUserNotificationCenterDelegate the notification proxy conforms to.
+#import <UserNotifications/UserNotifications.h>
+
 #if __has_include("WakeAlarm-Swift.h")
 #import "WakeAlarm-Swift.h"
 #else

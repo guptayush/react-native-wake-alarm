@@ -9,28 +9,69 @@ import Foundation
   private var updates: Task<Void, Never>?
   private let tint = (red: 0.20, green: 0.55, blue: 0.95)
 
+  // Alarm id -> firedAt ms for every AlarmKit alarm currently alerting. Kept by observeUpdates so
+  // getRingingJson() is an in-memory read on the render path, never an AlarmKit query.
+  private let alertingLock = NSLock()
+  private var alerting: [String: Int] = [:]
+
   public func start() {
     WakeAlarmBridge.shared.handler = { [weak self] payload in
       guard let id = payload["id"] as? String, let at = payload["at"] as? Int else { return }
       switch payload["action"] as? String {
       case "fired": self?.onEvent?("fired", ["id": id, "at": at])
-      case "stopped": self?.onEvent?("stopped", ["id": id, "at": at, "source": "user"])
+      case "stopped": self?.onEvent?("stopped", ["id": id, "at": at, "source": payload["source"] as? String ?? "user"])
       default: break
       }
     }
+    WakeAlarmNotificationProxy.shared.install()
+    seedAlerting()
     updates = AlarmKitScheduler.observeUpdates(
       knownIds: { [records] in records.all().map(\.id) },
-      onFired: { [weak self] id in self?.onEvent?("fired", ["id": id, "at": Self.nowMs()]) },
-      onStopped: { [weak self] id in self?.onEvent?("stopped", ["id": id, "at": Self.nowMs(), "source": "user"]) }
+      onFired: { [weak self] id in self?.markFired(id) },
+      onStopped: { [weak self] id in self?.markStopped(id, source: "user") }
     )
   }
 
   public func stop() {
     WakeAlarmBridge.shared.handler = nil
+    WakeAlarmNotificationProxy.shared.uninstall()
     updates?.cancel(); updates = nil
   }
 
   private static func nowMs() -> Int { Int(Date().timeIntervalSince1970 * 1000) }
+
+  // MARK: alerting map
+
+  /// An alert that began before the module loaded has no observable fire instant; its firedAt is the seed time.
+  private func seedAlerting() {
+    let now = Self.nowMs()
+    let ids = AlarmKitScheduler.alertingIds(from: records.all().map(\.id))
+    alertingLock.lock(); defer { alertingLock.unlock() }
+    for id in ids where alerting[id] == nil { alerting[id] = now }
+  }
+
+  private func markFired(_ id: String) {
+    alertingLock.lock()
+    let isNew = alerting[id] == nil
+    if isNew { alerting[id] = Self.nowMs() }
+    alertingLock.unlock()
+    if isNew { WakeAlarmBridge.shared.record(id: id, action: "fired") }
+  }
+
+  /// Returns false when the id was not alerting, so a stop already reported by stopRinging() is not reported twice.
+  @discardableResult
+  private func markStopped(_ id: String, source: String) -> Bool {
+    alertingLock.lock()
+    let wasAlerting = alerting.removeValue(forKey: id) != nil
+    alertingLock.unlock()
+    if wasAlerting { WakeAlarmBridge.shared.record(id: id, action: "stopped", source: source) }
+    return wasAlerting
+  }
+
+  private func latestAlerting() -> (id: String, firedAt: Int)? {
+    alertingLock.lock(); defer { alertingLock.unlock() }
+    return alerting.max { $0.value < $1.value }.map { (id: $0.key, firedAt: $0.value) }
+  }
 
   private func failed(_ reason: String, _ message: String = "") -> [String: Any] {
     ["status": "failed", "backend": "", "reason": reason, "nextFireAt": 0, "message": message]
@@ -80,18 +121,22 @@ import Foundation
     var record = input
     notifications.authorizationStatus { [self] auth in
       let proceed: (String) -> Void = { auth in
+        // Upsert semantics: whatever this id held before is gone before the outcome is decided.
         AlarmKitScheduler.cancel(record.id)
+        if auth == "denied" && alarmKitAvailable {
+          // "failed" means nothing from this call fires and nothing is listed: no request, no record.
+          self.notifications.cancel(record.id)
+          self.records.remove(record.id)
+          completion(self.failed("alarm_kit_denied", "AlarmKit denied and notifications are off"))
+          return
+        }
         self.notifications.schedule(record) { fire in
           guard let fire else { completion(self.failed("native_error", "UNUserNotificationCenter refused the request")); return }
           record.backend = "notification"
           record.nextFireAt = Int(fire.timeIntervalSince1970 * 1000)
           self.records.put(record)
-          if auth == "denied" {
-            if alarmKitAvailable { completion(self.failed("alarm_kit_denied", "AlarmKit denied and notifications are off")) }
-            else { completion(["status": "ok_degraded", "backend": "notification", "reason": "no_notification_permission", "nextFireAt": record.nextFireAt, "message": ""]) }
-          } else {
-            completion(["status": "ok_degraded", "backend": "notification", "reason": "notification_fallback", "nextFireAt": record.nextFireAt, "message": ""])
-          }
+          let reason = auth == "denied" ? "no_notification_permission" : "notification_fallback"
+          completion(["status": "ok_degraded", "backend": "notification", "reason": reason, "nextFireAt": record.nextFireAt, "message": ""])
         }
       }
       if auth == "not_determined" { self.notifications.requestAuthorization(proceed) } else { proceed(auth) }
@@ -149,18 +194,16 @@ import Foundation
   // MARK: ring lifecycle
 
   public func getRingingJson() -> String? {
-    let all = records.all()
-    guard let id = AlarmKitScheduler.alertingId(from: all.map(\.id)), let r = records.get(id) else { return nil }
-    var o: [String: Any] = ["id": r.id, "title": r.title, "firedAt": Self.nowMs(), "scheduledFor": r.nextFireAt]
+    guard let current = latestAlerting(), let r = records.get(current.id) else { return nil }
+    var o: [String: Any] = ["id": r.id, "title": r.title, "firedAt": current.firedAt, "scheduledFor": r.nextFireAt]
     if !r.body.isEmpty { o["body"] = r.body }
     if let d = r.payloadJson.data(using: .utf8), let p = try? JSONSerialization.jsonObject(with: d) as? [String: String], !p.isEmpty { o["payload"] = p }
     return (try? JSONSerialization.data(withJSONObject: o)).flatMap { String(data: $0, encoding: .utf8) }
   }
 
   public func stopRinging(_ completion: @escaping () -> Void) {
-    if let id = AlarmKitScheduler.alertingId(from: records.all().map(\.id)) {
-      AlarmKitScheduler.stop(id)
-      onEvent?("stopped", ["id": id, "at": Self.nowMs(), "source": "api"])
+    if let current = latestAlerting(), markStopped(current.id, source: "api") {
+      AlarmKitScheduler.stop(current.id)
     }
     completion()
   }

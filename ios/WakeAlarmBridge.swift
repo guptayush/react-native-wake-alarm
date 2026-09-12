@@ -8,7 +8,7 @@ import Foundation
   private let defaults = UserDefaults.standard
   private let key = "wake_alarm.pending_action"
 
-  /// Set by the module while JS is listening. Payload: {"id", "action", "at"}.
+  /// Set by the module while it is alive. Payload: {"id", "action", "at", "source"}.
   public var handler: (([String: Any]) -> Void)? {
     get { lock.lock(); defer { lock.unlock() }; return _handler }
     set { lock.lock(); defer { lock.unlock() }; _handler = newValue }
@@ -24,12 +24,15 @@ import Foundation
 
   private override init() {}
 
-  public func record(id: String, action: String) {
-    let payload: [String: Any] = ["id": id, "action": action, "at": Int(Date().timeIntervalSince1970 * 1000)]
-    if let live = handler { live(payload); return }
-    if let data = try? JSONSerialization.data(withJSONObject: payload), let json = String(data: data, encoding: .utf8) {
+  /// Always parks the latest action for consumePendingAction() and always forwards it to the module.
+  /// A JS listener that receives the live event clears the parked copy; nothing is dropped either way.
+  public func record(id: String, action: String, source: String = "user") {
+    let at = Int(Date().timeIntervalSince1970 * 1000)
+    let parked: [String: Any] = ["id": id, "action": action, "at": at]
+    if let data = try? JSONSerialization.data(withJSONObject: parked), let json = String(data: data, encoding: .utf8) {
       defaults.set(json, forKey: key)
     }
+    handler?(["id": id, "action": action, "at": at, "source": source])
   }
 
   public func consumeJson() -> String? {

@@ -60,11 +60,19 @@ is ringing.
 | Sound resource missing | system alarm ringtone | `ok` |
 | Battery restricted / OEM autostart off | may not fire; surfaced via `getPermissionStatus().batteryUnrestricted` and `openSettings('autostart')` | unchanged |
 | Foreground service start refused at fire time (permission revoked after arming, OEM quirk) | plain notification, no audio, app is told a `fired` pending action | n/a — this happens after `schedule` already resolved |
+| One weekday slot refused by `AlarmManager` while arming the rest | every slot armed so far for this `id` is disarmed and removed from the store — all-or-nothing | `failed / native_error` |
 
 If starting the foreground service throws when the alarm actually fires, the receiver
 falls back to posting a plain (non-full-screen) notification with no audio, and records
 a `fired` pending action for the app to read on next launch via
 `consumePendingAction()`.
+
+`schedule()` expands weekdays into one slot per day and arms them one at a time
+(`AlarmScheduler.scheduleAll`). If any slot's `setAlarmClock` call is refused, every
+slot already armed for that alarm is disarmed again and the whole `id` is removed from
+the store before `schedule()` resolves `failed`/`native_error` — a caller told `failed`
+can trust that nothing from that call will fire, not even the days that armed
+successfully before the failure.
 
 Scheduling the same `id` again replaces it. If a second alarm fires while one is already
 ringing, the new one supersedes the first — the old session is torn down (as a
@@ -90,8 +98,9 @@ change.
 - **OEM autostart** cannot be queried — there is no Android API for it. `openSettings('autostart')`
   opens a best-effort table of vendor screens (Xiaomi, Oppo, Realme, OnePlus, Vivo,
   Samsung, Huawei, Asus), falling back to the app's details screen.
-- `permissionChanged` is not emitted on Android in this version; poll
-  `getPermissionStatus()` instead (for example after returning from `openSettings`).
+- `permissionChanged` is not emitted by either platform in this version and is reserved
+  for future use; poll `getPermissionStatus()` instead (for example after returning from
+  `openSettings`).
 
 ## Performance notes
 

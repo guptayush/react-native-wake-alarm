@@ -16,8 +16,11 @@ at all.
 - **Fix**: `requestPermissions()` prompts on both platforms (Android 13+, iOS all
   versions); already-decided states are not re-prompted, so a denied user needs
   `openSettings('notifications')`.
-- **Default**: `not_determined` until first asked; Android below 13 reports `granted`
-  (there is no runtime prompt to deny).
+- **Default**: on iOS, `not_determined` until first asked. **On Android this gate is
+  only ever `granted` or `denied`** — `NotificationManagerCompat.areNotificationsEnabled()`
+  has no "not yet asked" state, so before the very first prompt on Android 13+ it reads
+  `denied`, same as after a real refusal; below Android 13 it reads `granted` (there is
+  no runtime prompt to deny). `not_determined` is an iOS-only value for this gate.
 
 ### `exactAlarm` (Android only)
 
@@ -60,8 +63,10 @@ at all.
 ### `alarmKit` (iOS only)
 
 - **Controls**: whether AlarmKit will accept a schedule. Denied (with AlarmKit
-  available) plus denied notifications resolves `failed / alarm_kit_denied`; denied
-  AlarmKit alone falls back to the notification path.
+  available) plus denied notifications resolves `failed / alarm_kit_denied`. Scheduled
+  as a notification instead of AlarmKit (`ok_degraded / notification_fallback`) covers
+  two cases: AlarmKit is unavailable (below iOS 26) or not yet decided, **or** AlarmKit
+  is available but the user denied it while notifications are still granted.
 - **Query**: `alarmKit` field.
 - **Fix**: `requestPermissions()` prompts (iOS 26+ only); otherwise
   `openSettings('alarmKit')` opens the app's Settings page.

@@ -13,6 +13,11 @@ All AlarmKit code is gated behind `#if canImport(AlarmKit)` and `if #available(i
 so the same binary runs on the library's 15.1 deployment target and uses AlarmKit only
 where the OS actually has it.
 
+AlarmKit alarms use a **relative** schedule — wall-clock hour/minute plus optional
+weekdays, never a fixed date (`Alarm.Schedule.relative` in `AlarmKitScheduler.swift`).
+A timezone change or a DST transition is picked up the next time the same wall-clock
+time comes around; nothing needs to re-schedule.
+
 ## Required host edits
 
 Copy the intents template into your app target — **not** into a pod or framework, App
@@ -43,9 +48,18 @@ Add to `Info.plist`:
 <string>Alarms you set can ring even when the phone is silent or in a Focus mode.</string>
 ```
 
-And enable the time-sensitive notifications entitlement
-(`com.apple.developer.usernotifications.time-sensitive`) — needed for the notification
-fallback path below iOS 26. The Expo plugin does both plist edits and the Swift
+Add the time-sensitive notifications entitlement, needed for the notification fallback
+path below iOS 26, to your `.entitlements` file:
+
+```xml
+<key>com.apple.developer.usernotifications.time-sensitive</key>
+<true/>
+```
+
+Make sure that file is wired up as `CODE_SIGN_ENTITLEMENTS` for your target's build
+settings (Xcode: Signing & Capabilities → "+ Capability" → Time Sensitive
+Notifications adds both for you) — the example app's target does this via its own
+`WakeAlarmExample.entitlements`. The Expo plugin does both plist edits and the Swift
 injection for you; see [docs/expo.md](expo.md).
 
 ## Sounds
@@ -69,7 +83,7 @@ standard time-sensitive banner with a **Stop** action.
 | Result | Meaning |
 | --- | --- |
 | `ok / alarm_kit` | Scheduled as a real system alarm. |
-| `ok_degraded / notification_fallback` | AlarmKit unavailable (below iOS 26) or not yet decided; scheduled as a notification instead. |
+| `ok_degraded / notification_fallback` | Scheduled as a notification instead of AlarmKit — either AlarmKit is unavailable (below iOS 26) or not yet decided, **or** AlarmKit is available but the user denied it while notifications are still granted. |
 | `ok_degraded / no_notification_permission` | AlarmKit unavailable and notifications are also denied — the app must find another way to tell the user. |
 | `failed / alarm_kit_denied` | AlarmKit exists on this device but the user denied it, and notifications are also denied. |
 
@@ -97,6 +111,9 @@ instant). Below iOS 26, or once the notification path is in play, `getRinging()`
 
 - `openSettings` only handles `'notifications'` and `'alarmKit'` on iOS; the other kinds
   are Android-only and resolve without doing anything.
+- `permissionChanged` is not emitted on iOS either — see
+  [docs/android.md](android.md#known-limitations); it is reserved for a future version
+  on both platforms.
 - No critical alerts. They require an Apple-granted entitlement most apps will not get,
   so this library does not use them — the AlarmKit and time-sensitive paths above are
   the ceiling on iOS.

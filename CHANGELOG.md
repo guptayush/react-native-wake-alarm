@@ -32,7 +32,8 @@ First release. New architecture only (TurboModule), bare React Native and Expo.
 - No server- or push-triggered alarms; scheduling is local only.
 - Android: re-arming after reboot does not cover the window before the device's first
   unlock (locked boot). Deferred to a future release.
-- Android: `permissionChanged` is not emitted; poll `getPermissionStatus()` instead.
+- `permissionChanged` is not emitted by either platform; poll `getPermissionStatus()`
+  instead. Reserved for a future release.
 - Android: OEM autostart state cannot be queried, only linked to from Settings.
 - iOS: no critical alerts — they need an Apple-granted entitlement most apps will not
   receive.

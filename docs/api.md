@@ -12,6 +12,11 @@ rather than throwing. A platform refusal (missing permission, AlarmKit denied, a
 on) is also a resolved `failed` or `ok_degraded` result — `schedule` only rejects for a
 genuine programming error it cannot classify.
 
+On Android, `days` expands into one alarm slot per weekday, armed one at a time. If any
+slot is refused, every slot already armed for this `id` is disarmed again and the `id`
+is removed from the store before resolving `failed`/`native_error` — all-or-nothing, so
+`failed` always means nothing from that call will fire.
+
 ### `cancel(id: string): Promise<void>`
 
 Cancels one alarm. Throws (a rejected promise) if `id` doesn't match the id pattern
@@ -24,9 +29,9 @@ Cancels every alarm scheduled by this library.
 ### `getScheduled(): Promise<ScheduledAlarm[]>`
 
 Reads what the OS itself will actually fire — `AlarmManager`'s stored slots on Android,
-`AlarmManager.shared.alarms` / pending notification requests on iOS — never a JavaScript
-cache. Native is the source of truth; if a record exists locally but the OS no longer
-holds it, it is dropped rather than reported.
+`AlarmManager.shared.alarms` / pending notification requests on iOS — never a
+JavaScript cache. A record that no longer exists on the OS side is dropped, not
+reported.
 
 ### `getPermissionStatus(): Promise<PermissionStatus>`
 
@@ -112,7 +117,9 @@ type FailureReason =
 ```
 
 `schedule()` never rejects for a platform refusal — every one of the above is a
-resolved value.
+resolved value. `notification_fallback` covers two iOS cases: AlarmKit is unavailable
+(below iOS 26) or not yet decided, **or** AlarmKit is available but the user denied it
+while notifications are still granted.
 
 ### `PermissionStatus` / `Gate`
 
@@ -151,8 +158,7 @@ interface StoppedEvent { id: string; at: number; source: 'user' | 'timeout' | 'a
 interface PermissionChangedEvent { gate: keyof PermissionStatus; value: Gate }
 ```
 
-`permissionChanged` is not emitted on Android in this version (see
-[docs/android.md](android.md)).
+`permissionChanged` is not emitted by either platform in this version; it's reserved.
 
 ### `RingingAlarm` / `PendingAction`
 

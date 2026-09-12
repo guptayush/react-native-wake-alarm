@@ -80,6 +80,13 @@ the app in the described state and observe.
   silenced (expected — this is the notification fallback, not AlarmKit); a Focus mode
   that allows time-sensitive notifications still lets it through.
 
+### Simulator limitation
+
+The iOS 26.x simulator's SpringBoard crashes with
+`-[AVAudioSession reporterID]: unrecognized selector` the moment an AlarmKit alert
+starts playing. Scheduling, authorization and Live Activity creation can still be
+checked in the simulator — only alert playback needs a real device.
+
 ## 5. Recording
 
 Screen-record every must-pass case above. The Δ line on the ring screen

@@ -107,6 +107,16 @@ running.
 instant). Below iOS 26, or once the notification path is in play, `getRinging()` returns
 `null` — there is no ringing state to observe outside AlarmKit.
 
+## Simulator limitation
+
+In the iOS 26.x simulator, SpringBoard crashes with
+`-[AVAudioSession reporterID]: unrecognized selector` when an AlarmKit alert starts
+playing — a simulator runtime bug, not a library bug (the same failure class is reported
+against Apple's critical-alert sounds on real hardware too, but only in the simulator
+here). Scheduling, authorization and Live Activity creation all work in the simulator;
+only alert playback needs a real device. See
+[docs/device-testing.md](device-testing.md#4-ios-cases) for the verified run.
+
 ## Known limitations
 
 - `openSettings` only handles `'notifications'` and `'alarmKit'` on iOS; the other kinds

@@ -38,3 +38,5 @@ First release. New architecture only (TurboModule), bare React Native and Expo.
 - iOS: no critical alerts — they need an Apple-granted entitlement most apps will not
   receive.
 - No calendar-style recurrence richer than "one-off" or "these weekdays".
+- iOS 26.x simulator: SpringBoard crashes on AlarmKit alert playback (Apple bug);
+  verify on real hardware.

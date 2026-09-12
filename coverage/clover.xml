@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1789213264253" clover="3.2.0">
+  <project timestamp="1789213264254" name="All files">
+    <metrics statements="30" coveredstatements="30" conditionals="34" coveredconditionals="34" methods="7" coveredmethods="7" elements="71" coveredelements="71" complexity="0" loc="30" ncloc="30" packages="1" files="3" classes="3"/>
+    <file name="index.ts" path="/Users/ayushgupta/react-native-wake-alarm/src/index.ts">
+      <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+    </file>
+    <file name="types.ts" path="/Users/ayushgupta/react-native-wake-alarm/src/types.ts">
+      <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+    </file>
+    <file name="validate.ts" path="/Users/ayushgupta/react-native-wake-alarm/src/validate.ts">
+      <metrics statements="30" coveredstatements="30" conditionals="34" coveredconditionals="34" methods="7" coveredmethods="7"/>
+      <line num="4" count="1" type="stmt"/>
+      <line num="5" count="1" type="stmt"/>
+      <line num="6" count="1" type="stmt"/>
+      <line num="7" count="1" type="stmt"/>
+      <line num="10" count="24" type="stmt"/>
+      <line num="15" count="24" type="stmt"/>
+      <line num="16" count="24" type="stmt"/>
+      <line num="20" count="1" type="stmt"/>
+      <line num="21" count="53" type="cond" truecount="4" falsecount="0"/>
+      <line num="24" count="27" type="cond" truecount="4" falsecount="0"/>
+      <line num="25" count="6" type="stmt"/>
+      <line num="27" count="21" type="cond" truecount="2" falsecount="0"/>
+      <line num="28" count="4" type="stmt"/>
+      <line num="29" count="17" type="cond" truecount="2" falsecount="0"/>
+      <line num="30" count="2" type="stmt"/>
+      <line num="31" count="15" type="cond" truecount="4" falsecount="0"/>
+      <line num="32" count="2" type="stmt"/>
+      <line num="34" count="13" type="cond" truecount="2" falsecount="0"/>
+      <line num="35" count="13" type="cond" truecount="4" falsecount="0"/>
+      <line num="36" count="4" type="stmt"/>
+      <line num="38" count="9" type="cond" truecount="2" falsecount="0"/>
+      <line num="39" count="9" type="cond" truecount="2" falsecount="0"/>
+      <line num="40" count="2" type="stmt"/>
+      <line num="42" count="7" type="cond" truecount="2" falsecount="0"/>
+      <line num="43" count="7" type="cond" truecount="2" falsecount="0"/>
+      <line num="44" count="4" type="stmt"/>
+      <line num="49" count="3" type="stmt"/>
+      <line num="52" count="2" type="stmt"/>
+      <line num="54" count="3" type="stmt"/>
+      <line num="58" count="4" type="stmt"/>
+    </file>
+  </project>
+</coverage>

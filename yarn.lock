@@ -9378,6 +9378,9 @@ __metadata:
   peerDependencies:
     react: "*"
     react-native: ">=0.76.0"
+  peerDependenciesMeta:
+    "@expo/config-plugins":
+      optional: true
   languageName: unknown
   linkType: soft
 

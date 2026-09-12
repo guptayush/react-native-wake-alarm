@@ -27,6 +27,8 @@ describe('ring lifecycle', () => {
     expect(api.getRinging()).toBeNull();
     native.getRingingJson.mockReturnValue('123');
     expect(api.getRinging()).toBeNull();
+    native.getRingingJson.mockReturnValue('[1,2]');
+    expect(api.getRinging()).toBeNull();
   });
 
   it('stopRinging forwards', async () => {
@@ -84,6 +86,13 @@ describe('ring lifecycle', () => {
       gate: 'exactAlarm',
       value: 'not_applicable',
     });
+  });
+
+  it('addListener drops permission events for unknown gates', () => {
+    const perm = jest.fn();
+    api.addListener('permissionChanged', perm);
+    emit('onPermissionChanged', { gate: 'bogus', value: 'granted' });
+    expect(perm).not.toHaveBeenCalled();
   });
 
   it('addListener rejects an unknown event name', () => {

@@ -48,12 +48,19 @@ const EVENTS: readonly WakeAlarmEvent[] = [
   'permissionChanged',
 ];
 const STOP_SOURCES = new Set(['user', 'timeout', 'api']);
+const GATE_KEYS = new Set<keyof PermissionStatus>([
+  'notifications',
+  'exactAlarm',
+  'fullScreenIntent',
+  'batteryUnrestricted',
+  'alarmKit',
+]);
 
 function parseJson<T>(json: string | null): T | null {
   if (!json) return null;
   try {
     const v: unknown = JSON.parse(json);
-    return v && typeof v === 'object' ? (v as T) : null;
+    return v && typeof v === 'object' && !Array.isArray(v) ? (v as T) : null;
   } catch {
     return null;
   }
@@ -130,11 +137,14 @@ export function createApi(native: Spec): WakeAlarmApi {
             })
           );
         case 'permissionChanged':
-          return native.onPermissionChanged((e: NativePermissionChangedEvent) =>
-            (cb as (x: PermissionChangedEvent) => void)({
-              gate: e.gate as PermissionChangedEvent['gate'],
-              value: toGate(e.value),
-            })
+          return native.onPermissionChanged(
+            (e: NativePermissionChangedEvent) => {
+              if (!GATE_KEYS.has(e.gate as keyof PermissionStatus)) return;
+              (cb as (x: PermissionChangedEvent) => void)({
+                gate: e.gate as PermissionChangedEvent['gate'],
+                value: toGate(e.value),
+              });
+            }
           );
         default:
           throw new WakeAlarmInputError(

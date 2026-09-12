@@ -17,7 +17,25 @@ const emitter = (name: string) =>
 export const emit = (name: keyof typeof listeners, payload: unknown) =>
   listeners[name]!.forEach((l) => l(payload));
 
-const mock: jest.Mocked<Spec> = {
+type MockedSpec = {
+  [
+    K in Exclude<
+      keyof Omit<
+        Spec,
+        'getConstants' | 'onFired' | 'onStopped' | 'onPermissionChanged'
+      >,
+      never
+    >
+  ]: Spec[K] extends (...args: infer A) => infer R
+    ? jest.Mock<(...args: A) => R>
+    : Spec[K];
+} & {
+  onFired: Spec['onFired'];
+  onStopped: Spec['onStopped'];
+  onPermissionChanged: Spec['onPermissionChanged'];
+};
+
+const mock: MockedSpec = {
   schedule: jest.fn<Spec['schedule']>(),
   cancel: jest.fn<Spec['cancel']>(),
   cancelAll: jest.fn<Spec['cancelAll']>(),
@@ -33,6 +51,6 @@ const mock: jest.Mocked<Spec> = {
   onPermissionChanged: emitter(
     'onPermissionChanged'
   ) as unknown as Spec['onPermissionChanged'],
-} as unknown as jest.Mocked<Spec>;
+};
 
 export default mock;

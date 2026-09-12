@@ -1,26 +1,69 @@
 # react-native-wake-alarm
 
-Real alarms for React Native: wake the phone, take over the lock screen, ring through silent mode
+Real alarms for React Native. Wakes the phone, takes over the lock screen, and rings through silent mode and Do Not Disturb, with the app backgrounded or killed.
 
-## Installation
+- **Android**: exact `AlarmManager` alarm → foreground service on the alarm audio stream → full-screen takeover. No JavaScript in the audible path.
+- **iOS 26+**: AlarmKit system alarm. Breaks through the silent switch and Focus.
+- **iOS < 26**: time-sensitive local notification with a Stop action (passes Focus, not the silent switch), reported to you as a degraded result.
+- Bare React Native and Expo. One package. New architecture.
 
+## Install
 
 ```sh
 npm install react-native-wake-alarm
+cd ios && pod install
 ```
 
+Expo: `npx expo install react-native-wake-alarm` and add `"react-native-wake-alarm"` to `plugins` in `app.json`. See [docs/expo.md](docs/expo.md).
 
-## Usage
+iOS also needs a short Swift file copied into your app target and an Info.plist key plus an entitlement. See [docs/ios.md](docs/ios.md).
 
+## Use
 
-```js
-import { multiply } from 'react-native-wake-alarm';
+```ts
+import WakeAlarm from 'react-native-wake-alarm';
 
-// ...
+await WakeAlarm.requestPermissions();
 
-const result = multiply(3, 7);
+const result = await WakeAlarm.schedule({
+  id: 'morning',
+  hour: 6, minute: 30,
+  days: [1, 2, 3, 4, 5],          // ISO weekdays; omit for a one-off
+  title: 'Morning session',
+  body: 'Starts in 15 minutes',
+  sound: 'chime',                 // bundled sound name, optional
+});
+
+if (result.status === 'failed') showFix(result.reason);
+if (result.status === 'ok_degraded') explain(result.reason);
+
+WakeAlarm.addListener('fired', ({ id }) => {});
+WakeAlarm.addListener('stopped', ({ id, source }) => {});
 ```
 
+Every platform refusal is a typed result, never a silent failure. [docs/api.md](docs/api.md) lists every method, result and reason.
+
+## What the user has to grant
+
+| Gate | Android | iOS |
+| --- | --- | --- |
+| Notifications | prompt (13+) | prompt |
+| Exact alarms | Settings toggle (12+), `openSettings('exactAlarm')` | n/a |
+| Full-screen alerts | Settings toggle (14+); revoked at install for non-alarm apps | n/a |
+| Battery unrestricted / autostart | Settings, OEM dependent | n/a |
+| AlarmKit | n/a | prompt (26+) |
+
+[docs/permissions-and-store-policy.md](docs/permissions-and-store-policy.md) explains each gate and the Play Console declarations you must file.
+
+## Tested on
+
+| Device | OS | Backgrounded | Killed | Locked | Silent/DND | Reboot |
+| --- | --- | --- | --- | --- | --- | --- |
+| (fill from docs/device-testing.md runs) | | | | | | |
+
+## Docs
+
+[Android](docs/android.md) · [iOS](docs/ios.md) · [Expo](docs/expo.md) · [Permissions & store policy](docs/permissions-and-store-policy.md) · [API](docs/api.md) · [Device testing](docs/device-testing.md) · [Design](docs/design.md)
 
 ## Contributing
 

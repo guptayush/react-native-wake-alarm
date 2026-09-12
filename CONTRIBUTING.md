@@ -75,19 +75,32 @@ To fix formatting errors, run the following:
 yarn lint --fix
 ```
 
-Remember to add tests for your change if possible. Run the unit tests by:
+Remember to add tests for your change if possible. This project has three test suites,
+one per layer:
 
 ```sh
+# JavaScript (Jest, 100% coverage threshold)
 yarn test
+
+# Android native (JUnit)
+cd example/android && ./gradlew :react-native-wake-alarm:testDebugUnitTest
+
+# iOS native (XCTest via Swift Package Manager)
+cd ios && swift test
 ```
 
-
+Native code changes that touch scheduling, permission gates or the ring lifecycle
+should also be checked manually on a device — see the
+[device testing checklist](docs/device-testing.md). Simulators and emulators cannot
+exercise exact-alarm scheduling or AlarmKit reliably.
 
 ### Publishing to npm
 
-We use [release-it](https://github.com/release-it/release-it) to make it easier to publish new versions. It handles common tasks like bumping version based on semver, creating tags and releases etc.
-
-To publish new versions, run the following:
+Releases are not published from a local machine. `yarn release` (via
+[release-it](https://github.com/release-it/release-it)) bumps the version, updates the
+changelog and pushes a `v*` tag; a CI release workflow, triggered by that tag, reruns
+the checks and is responsible for the npm publish itself. `yarn release` does not
+publish anything on its own:
 
 ```sh
 yarn release

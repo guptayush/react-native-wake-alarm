@@ -5,7 +5,7 @@ Real alarms for React Native. Wakes the phone, takes over the lock screen, and r
 - **Android**: exact `AlarmManager` alarm → foreground service on the alarm audio stream → full-screen takeover. No JavaScript in the audible path.
 - **iOS 26+**: AlarmKit system alarm. Breaks through the silent switch and Focus.
 - **iOS < 26**: time-sensitive local notification with a Stop action (passes Focus, not the silent switch), reported to you as a degraded result.
-- Bare React Native and Expo. One package. New architecture.
+- Bare React Native and Expo. One package. New architecture, React Native 0.80 or later.
 
 ## Install
 
@@ -17,6 +17,8 @@ cd ios && pod install
 Expo: `npx expo install react-native-wake-alarm` and add `"react-native-wake-alarm"` to `plugins` in `app.json`. See [docs/expo.md](docs/expo.md).
 
 iOS also needs a short Swift file copied into your app target and an Info.plist key plus an entitlement. See [docs/ios.md](docs/ios.md).
+
+Import the package from a module your entry file reaches (`index.js` or `App.tsx`), not lazily inside a screen: the import registers the lock-screen ring component, and that is all it does at launch. See [docs/android.md](docs/android.md#the-ring-screen).
 
 ## Use
 
@@ -59,8 +61,11 @@ Every platform refusal is a typed result, never a silent failure. [docs/api.md](
 
 | Device | OS | Backgrounded | Killed | Locked | Silent/DND | Reboot |
 | --- | --- | --- | --- | --- | --- | --- |
-| Android emulator (`Medium_Phone_API_36.1`), example app | API 36 (Android 16) | ✓ (Δ 106 ms; heads-up banner, tap opened full-screen ring, Stop tore it down; full-screen not auto-granted (heads-up, then full-screen after tap)) | not yet run | not yet run | not yet run | not yet run |
+| Android emulator (`WakeAlarm_API_26`), example app | API 26 (Android 8.0) | ✓ heads-up, full-screen after tap; `RingService` on the alarm stream, Stop cleaned up, no exception | not yet run (rang from the native service; ring screen re-verified after the import-time registration fix is pending) | ✓ display asleep before the minute: screen woke, `WakeAlarmActivity` took over the lock screen with no tap | not yet run | not yet run |
+| Android emulator (`Medium_Phone_API_36.1`), example app | API 36 (Android 16) | ✓ Δ 106 ms; heads-up, full-screen after tap, Stop tore it down | not yet run | ✓ with the full-screen gate granted in Settings: screen woke, takeover with no tap, service ran, no exception | not yet run | not yet run |
 | iOS Simulator, example app | iOS 26.2 (Xcode 26.2) | simulator crashes on alert playback (Apple bug); needs hardware | not yet run | not yet run | simulator crashes on alert playback (Apple bug); needs hardware | not yet run |
+
+Android shows a full-screen intent as a heads-up banner whenever the screen is on and unlocked; the automatic takeover happens only with the screen off or the keyguard showing, which is why the Locked column is the one that proves it.
 
 On the iOS simulator, the AlarmKit authorization prompt, scheduling, Live Activity creation
 and alert posting were all verified; only alert playback crashes the simulator's SpringBoard

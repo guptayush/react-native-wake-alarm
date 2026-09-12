@@ -74,7 +74,7 @@ at all.
 
 ## Play Console
 
-File both of these before releasing, or the store review flags the app:
+File all three of these before releasing, or the store review flags the app:
 
 - **Full-screen intent declaration** (Android 14+ / target SDK 34+). Play's review
   classifies most apps as "not an alarm or calling app" by default, which is exactly why
@@ -83,6 +83,19 @@ File both of these before releasing, or the store review flags the app:
   the review doesn't reject the build outright.
 - **Exact alarm declaration**, for `SCHEDULE_EXACT_ALARM`. Play requires a declared use
   case; "alarm clock" is the accurate one here.
+- **Foreground service type declaration** (target SDK 34+). This library's manifest
+  adds `RingService` with `foregroundServiceType="systemExempted"`, so Play's
+  "Foreground service permissions" form must be completed for the `systemExempted`
+  type even if your app declares no other service. Pick the alarm-clock use case
+  ("a user-scheduled alarm that must ring at an exact time and take over the screen,
+  started from `AlarmManager.setAlarmClock`"), and attach the demo video Play asks for —
+  a screen recording of scheduling an alarm and the ring screen taking over the lock
+  screen is what reviewers expect. A host that does not know the library added a
+  foreground service is rejected on first upload.
+
+Also tell your users, or your product team, that `setAlarmClock` shows the system
+alarm icon in the status bar from the moment an alarm is armed until it fires — a
+non-alarm app displaying that icon is the first thing a reviewer or a user notices.
 
 `USE_EXACT_ALARM` (the alternative to `SCHEDULE_EXACT_ALARM` that skips the user-facing
 toggle) is **not** declared by this package — Play restricts it to apps whose core

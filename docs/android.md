@@ -16,6 +16,12 @@ No JavaScript runs in this path. The receiver, the service and the activity are 
 native; React Native is only mounted once the ring activity is on screen, to render the
 ring UI.
 
+**Import the package from a module your entry file reaches** (`index.js`, `App.tsx`, or
+anything they import at module scope) — not lazily inside a screen. When the alarm
+fires with the process dead, the ring activity evaluates the bundle's module scope and
+starts the `WakeAlarmRing` surface; the import is what registers that component with
+`AppRegistry`. A `require()` deferred until a screen mounts never runs in that activity.
+
 ## What is merged into your app
 
 Everything below comes from the library's own `AndroidManifest.xml` via manifest
@@ -44,7 +50,16 @@ alarm ringtone; if `MediaPlayer` errors mid-ring it retries once on the default 
 
 Call `WakeAlarm.registerRingScreen(MyRingScreen)` once at startup to render your own UI;
 otherwise a plain default screen is used. Either way, `WakeAlarmActivity` hosts a single
-React root with the registered component — no navigation container.
+React root with the registered component — no navigation container. The `WakeAlarmRing`
+component itself is registered when the package is imported; `registerRingScreen` only
+swaps what renders inside it.
+
+**When the takeover happens.** Android shows a full-screen intent as a heads-up banner
+whenever the screen is on and unlocked, on every version; tapping the banner opens the
+ring activity. The automatic takeover — screen turning on, activity over the keyguard —
+happens only when the screen is off or the lock screen is showing. That is platform
+behaviour, not a permission state: `fullScreenIntent: granted` still means heads-up on
+an unlocked, lit screen.
 
 The activity finishes itself as soon as the ring stops, from any source (Stop button,
 `stopRinging()`, or the `maxRingMs` timeout). Hardware Back is swallowed while an alarm
@@ -75,8 +90,18 @@ can trust that nothing from that call will fire, not even the days that armed
 successfully before the failure.
 
 Scheduling the same `id` again replaces it. If a second alarm fires while one is already
-ringing, the new one supersedes the first — the old session is torn down (as a
-`"stopped"` with source `"api"`) before the new one starts.
+ringing, the new one supersedes the first: the new `RingState` is published first, then
+the old player, vibration and timeout are torn down and the old session reports
+`"stopped"` with source `"superseded"`. The ring activity stays up and re-reads
+`getRinging()` for the new alarm.
+
+## Events and the pending action
+
+`RingService` handles every `fired` and `stopped` the same way: it writes the action to
+the single-slot pending store **and** emits it to JavaScript. If a JS listener receives
+the live event it clears the parked copy, so `consumePendingAction()` on the next launch
+sees only what nobody was listening for. The slot holds one action — the latest write
+wins, so `fired` followed by `stopped` with JS absent yields `stopped`.
 
 ## Reboot and time changes
 
@@ -104,8 +129,9 @@ change.
 
 ## Performance notes
 
-Nothing runs at app launch — the module is a lazily-loaded TurboModule and no listener,
-timer or storage read happens on import. In the fire path, the receiver does one
+Importing the package does one thing: `AppRegistry.registerComponent('WakeAlarmRing', …)`,
+a map insert with a lazy provider. The TurboModule is resolved on the first API call, and
+no listener, timer or storage read happens on import. In the fire path, the receiver does one
 `SharedPreferences` read and one `startForegroundService` call; `MediaPlayer` starts
 playback from its prepared callback, so the notification and the ring activity follow
 the audio rather than gate it. The target is audible sound under 500 ms after the alarm

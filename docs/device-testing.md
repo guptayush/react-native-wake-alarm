@@ -23,15 +23,22 @@ where the OS doesn't have that gate).
 Each case: schedule with the **Schedule** card ("Fire in 1 min" unless noted), then put
 the app in the described state and observe.
 
-- **Foreground** — schedule, keep the app open → heads-up banner + audio; the full-screen
-  activity does not take over (screen on and unlocked is heads-up by design).
-- **Backgrounded** — press Home → full-screen activity opens, audio plays on the alarm
-  stream.
-- **Killed** — swipe the app away from recents → same as backgrounded.
+Android shows a full-screen intent as a heads-up banner whenever the screen is on and
+unlocked; the automatic takeover only happens with the screen off or the keyguard showing.
+So the **Locked, screen off** case is the one that verifies the takeover; the foreground
+and backgrounded/screen-on cases are expected to show a heads-up.
+
+- **Foreground** — schedule, keep the app open → heads-up banner + audio; tapping the
+  banner opens the ring activity. No automatic takeover (screen on and unlocked).
+- **Backgrounded, screen on** — press Home → heads-up banner, audio on the alarm stream,
+  full-screen after tap. Expected; not a takeover failure.
+- **Killed** — swipe the app away from recents, then sleep the display as in the locked
+  case → the alarm rings from the native service and the ring screen appears with no tap.
   Proof: `adb shell dumpsys activity services | grep RingService` shows the service
   running; the Δ shown on the ring screen is under 1000 ms.
-- **Locked, screen off** — `adb shell input keyevent 26` to sleep the screen → it turns
-  on over the lock screen when the alarm fires.
+- **Locked, screen off** — `adb shell input keyevent 26` before the scheduled minute →
+  the screen turns on and `WakeAlarmActivity` takes over the lock screen with no tap.
+  This is the case that proves the takeover.
 - **Silent / DND** —
   ```bash
   adb shell cmd notification set_dnd on

@@ -50,7 +50,8 @@ Functional:
 
 Platform floors: Android API 26 (Oreo) and later, targeting the current
 release; iOS 15.1 and later, with AlarmKit used on 26 and later; React Native
-0.76 and later, new architecture.
+0.80 and later, new architecture. 0.80 is where the `CodegenTypes` root export
+the TurboModule spec relies on arrived, and it is the lowest version CI builds.
 
 ## 4. Architecture
 
@@ -158,8 +159,11 @@ Rules:
   AlarmKit (iOS 26+). Exact alarm, full-screen intent, battery and autostart
   have no prompt; the app calls `openSettings` for those. The returned status
   is re-read after prompting.
-- `getRinging` is a synchronous read of an in-memory native flag. It is safe
-  to call during render.
+- `getRinging` is a synchronous in-memory read. It is safe to call during
+  render. On Android that is the service's `RingState`; on iOS it is a map of
+  alerting alarm ids to fire instants that the module keeps from
+  `AlarmManager.shared.alarmUpdates` (seeded once at module start), plus a
+  cached record for title, body and payload. No AlarmKit query per call.
 - Payload values are strings only, so they survive `PendingIntent` extras
   and AlarmKit metadata without serialisation surprises.
 - `autostart` is a `SettingsKind` but not a `PermissionStatus` field because
@@ -192,8 +196,10 @@ wall-clock minute.
 ### Firing with the process dead
 
 `FireReceiver` (`BroadcastReceiver`) receives the slot key, acquires a
-partial wake lock capped at 60 seconds, reads the one slot, re-arms it for
-next week if it is weekly, and calls `startForegroundService(RingService)`.
+partial wake lock capped at 60 seconds, reads the one slot, re-arms it if it
+is weekly (`AlarmScheduler.consumeFire`: next occurrence of the slot's own
+weekday after `max(nextFireAt, now)`, so a late delivery never moves the
+alarm to another day), and calls `startForegroundService(RingService)`.
 Starting a foreground service from an exact alarm is permitted on Android 12
 and later.
 
@@ -222,17 +228,31 @@ is not found in `res/raw`, it plays the system default alarm ringtone. If
 
 Stop: the notification action, `stopRinging()` from JS, or the timeout all
 route to `ACTION_STOP`, which stops the player, cancels vibration, clears
-`RingState`, records a pending `stopped` action for JS, stops foreground,
-and stops the service.
+`RingState`, delivers `stopped`, stops foreground, and stops the service.
+Every `fired` and `stopped` is delivered the same way: written to the
+single-slot pending store **and** emitted to JS, with no check for native
+listeners. A live JS listener clears the parked copy on delivery, so
+`consumePendingAction()` returns only what nobody was listening for.
 
 ### Screen takeover
 
 `WakeAlarmActivity` is declared in the library manifest with
 `showWhenLocked="true"`, `turnScreenOn="true"`, `excludeFromRecents="true"`,
 `launchMode="singleTask"`, and `exported="false"`. It extends `ReactActivity`
-and hosts the component `WakeAlarmRing`. The JS side registers the default
-ring screen under that name at import time only if the app has not called
-`registerRingScreen`; `registerRingScreen` replaces the registration.
+and hosts the component `WakeAlarmRing`. The JS side registers that component
+with `AppRegistry` **at import time, unconditionally**: when the alarm fires
+with the process dead, the activity evaluates only the bundle's module scope
+before starting the surface, so a registration deferred to an API call would
+never happen. `registerRingScreen` swaps the inner component rendered by that
+root; it never re-registers. The host must import the package from a module
+its entry file reaches.
+
+Android shows a full-screen intent as a heads-up banner whenever the screen
+is on and unlocked; the automatic takeover happens only with the screen off or
+the keyguard showing. If a second alarm fires while one rings, the service
+publishes the new `RingState` before tearing down the old session, so the
+activity (which finishes only while `RingState` is null) stays up; the old
+session reports `stopped` with source `superseded`.
 
 The activity is the package's own, so the host `MainActivity` is untouched
 and a normal notification tap can never bypass the lock screen. It finishes
@@ -296,6 +316,11 @@ target and one binary serves every supported version.
 - `getScheduled` reads `AlarmManager.shared.alarms`.
 - Authorization: `requestAuthorization()` on the main actor. Already-decided
   states are not re-requested.
+- Denied: AlarmKit denied with notifications granted falls back to the
+  notification path and reports `ok_degraded / notification_fallback`.
+  AlarmKit denied **and** notifications denied is `failed / alarm_kit_denied`:
+  nothing is scheduled, nothing is persisted, and a previous alarm with the
+  same id is cancelled (upsert).
 
 ### Below iOS 26 — notification fallback
 
@@ -306,15 +331,24 @@ category `WAKE_ALARM` with a `STOP` action. This passes Focus but not the
 silent switch. `schedule` returns `ok_degraded / notification_fallback`.
 The app should tell the user to keep the ringer on.
 
+The module owns `UNUserNotificationCenter.current().delegate` for that
+category through a proxy: `willPresent` returns banner, list and sound so a
+foreground alarm is shown; `didReceive` records `stopped` for the `STOP`
+action and the default tap; everything else is forwarded to the delegate the
+host had installed, which is restored when the module stops. The host's
+`WakeAlarmIntentsRegistration.install()` installs the proxy at launch so a
+cold-start tap is seen before the module loads.
+
 The time-sensitive entitlement must be enabled by the host, documented and
 set by the Expo plugin.
 
 ### Stop intent and cold start
 
-`PendingActionBridge` is a process-wide singleton. An App Intent, a
-notification response, or JS `stopRinging` records `{id, action, at}`. If a
-JS listener is attached it is forwarded; otherwise it is parked for
-`consumePendingAction()`.
+`WakeAlarmBridge` is a process-wide singleton. An App Intent, a notification
+response, an AlarmKit alerting transition, or JS `stopRinging` records
+`{id, action, at}`. Every record is parked for `consumePendingAction()` **and**
+forwarded to the module; a live JS listener clears the parked copy. The slot
+holds one action, latest write wins.
 
 App Intents declared inside a static-library pod are reported unresolvable by
 the AppIntents runtime at run time even though build-time metadata looks
@@ -356,8 +390,11 @@ The `docs/` directory carries one guide per topic. Summary:
 
 ## 10. Performance budgets
 
-- Zero cost at app launch. No initializer, no listener, no storage read on
-  import. The TurboModule loads lazily on first call.
+- Near-zero cost at app launch. The one action permitted on import is
+  `AppRegistry.registerComponent('WakeAlarmRing', …)` — a map insert with a
+  lazy provider, required by §6 because the ring activity evaluates only
+  module scope. No other initializer, no listener, no storage read on import.
+  The TurboModule is resolved on the first API call.
 - No runtime dependencies. JS bundle under 10 KB minified.
 - Fire to first audible sound under 500 ms with the process dead, cold, on a
   mid-range Android device. Receiver does one prefs read and one
@@ -386,8 +423,11 @@ The `docs/` directory carries one guide per topic. Summary:
 ## 12. Testing
 
 - Jest on `src/` with the native module mocked. Threshold 100 percent.
-- JUnit on `AlarmScheduler` maths: next occurrence, weekly roll-forward,
-  timezone recompute, DST, past-due handling. JVM only.
+- JUnit on `AlarmMath`: next occurrence, weekly roll-forward, timezone
+  recompute, DST. Robolectric JUnit on `AlarmScheduler`: `consumeFire` on
+  time, one day late and eight days late; `rearmAll` dropping a past-due
+  one-off and rolling a weekly slot forward; `scheduleAll` rollback when a
+  later slot is refused (nothing armed, store empty). JVM only.
 - XCTest on id-to-UUID derivation and availability gating.
 - Example bare React Native app under `example/` exercising every API, with
   a "fire in 30 s" button and a status panel per permission gate.

@@ -9377,7 +9377,7 @@ __metadata:
     typescript: "npm:^6.0.3"
   peerDependencies:
     react: "*"
-    react-native: ">=0.76.0"
+    react-native: ">=0.80.0"
   peerDependenciesMeta:
     "@expo/config-plugins":
       optional: true

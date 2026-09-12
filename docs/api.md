@@ -1,6 +1,8 @@
 # API reference
 
-Default export `WakeAlarm`, implementing `WakeAlarmApi`.
+Default export `WakeAlarm`, implementing `WakeAlarmApi`. Import it from a module your
+entry file reaches (see [Android → The ring screen](android.md#the-ring-screen)): the
+import registers the `WakeAlarmRing` component the lock-screen activity starts.
 
 ## Methods
 
@@ -12,15 +14,15 @@ rather than throwing. A platform refusal (missing permission, AlarmKit denied, a
 on) is also a resolved `failed` or `ok_degraded` result — `schedule` only rejects for a
 genuine programming error it cannot classify.
 
-On Android, `days` expands into one alarm slot per weekday, armed one at a time. If any
-slot is refused, every slot already armed for this `id` is disarmed again and the `id`
-is removed from the store before resolving `failed`/`native_error` — all-or-nothing, so
-`failed` always means nothing from that call will fire.
+`failed` always means nothing from that call will fire and nothing is listed. On Android,
+`days` expands into one alarm slot per weekday, armed one at a time; if any slot is
+refused, every slot already armed for this `id` is disarmed and the `id` removed from
+the store before resolving `failed`/`native_error`. On iOS, `failed / alarm_kit_denied`
+schedules no notification and persists no record.
 
 ### `cancel(id: string): Promise<void>`
 
-Cancels one alarm. Throws (a rejected promise) if `id` doesn't match the id pattern
-below.
+Cancels one alarm. Throws (a rejected promise) if `id` doesn't match the id pattern below.
 
 ### `cancelAll(): Promise<void>`
 
@@ -29,9 +31,8 @@ Cancels every alarm scheduled by this library.
 ### `getScheduled(): Promise<ScheduledAlarm[]>`
 
 Reads what the OS itself will actually fire — `AlarmManager`'s stored slots on Android,
-`AlarmManager.shared.alarms` / pending notification requests on iOS — never a
-JavaScript cache. A record that no longer exists on the OS side is dropped, not
-reported.
+`AlarmManager.shared.alarms` / pending notification requests on iOS — never a JavaScript
+cache. A record that no longer exists on the OS side is dropped, not reported.
 
 ### `getPermissionStatus(): Promise<PermissionStatus>`
 
@@ -47,21 +48,28 @@ a rejection path. Gates with no OS prompt (`exactAlarm`, `fullScreenIntent`, `ba
 
 ### `openSettings(kind: SettingsKind): Promise<void>`
 
-Opens the Settings screen for one gate. Throws if `kind` isn't one of the values below.
+Opens the Settings screen for one gate; throws if `kind` isn't a `SettingsKind`.
 
 ### `getRinging(): RingingAlarm | null`
 
-Synchronous read of an in-memory native flag — safe to call during render, no promise
-involved.
+Synchronous, in-memory, safe to call during render. Android reads the service's
+`RingState`. iOS reads a map of alerting AlarmKit alarms that the module keeps from
+`AlarmManager.shared.alarmUpdates` (seeded once when the module loads), then the cached
+record for title, body and payload — no AlarmKit query and no store decode per call.
+`firedAt` is the observed transition instant; for an alert that began before the module
+loaded it is the moment the module first saw it. Below iOS 26 it returns `null`.
 
 ### `stopRinging(): Promise<void>`
 
-Stops the currently ringing alarm, if any.
+Stops the currently ringing alarm, if any. Resolves without effect when nothing rings.
 
 ### `consumePendingAction(): PendingAction | null`
 
-Reads and clears a queued fired/stopped action that happened while JS wasn't listening
-(a cold start, an App Intent, a notification tap). Call once on mount.
+Reads and clears the parked action. Native parks **every** `fired` and `stopped` in a
+single slot and emits it too; a JS listener that receives the live event clears the
+parked copy, so what you read here is what nobody was listening for (cold start, an
+App Intent, a notification tap). One slot: the latest write wins, so `fired` then
+`stopped` with JS absent yields only `stopped`. Call once on mount.
 
 ### `addListener(event, cb): Subscription`
 
@@ -71,7 +79,8 @@ follows `event` (see Event payloads below). Returns `{ remove(): void }`.
 ### `registerRingScreen(component: ComponentType<RingScreenProps>): void`
 
 Registers your own ring UI. Call once at startup; a plain default screen is used if you
-never call this.
+never call this. It swaps the inner component only — the `WakeAlarmRing` root is
+registered with `AppRegistry` when the package is imported.
 
 ## Types
 
@@ -117,9 +126,11 @@ type FailureReason =
 ```
 
 `schedule()` never rejects for a platform refusal — every one of the above is a
-resolved value. `notification_fallback` covers two iOS cases: AlarmKit is unavailable
-(below iOS 26) or not yet decided, **or** AlarmKit is available but the user denied it
-while notifications are still granted.
+resolved value. A native result whose `status`, `reason` or `backend` is outside these
+unions maps to `failed / native_error` with the offending value in `message`.
+`notification_fallback` covers two iOS cases: AlarmKit is unavailable (below iOS 26) or
+not yet decided, **or** AlarmKit is available but the user denied it while notifications
+are still granted.
 
 ### `PermissionStatus` / `Gate`
 
@@ -154,13 +165,20 @@ type SettingsKind =
 
 ```ts
 interface FiredEvent { id: string; at: number }
-interface StoppedEvent { id: string; at: number; source: 'user' | 'timeout' | 'api' }
+interface StoppedEvent {
+  id: string;
+  at: number;
+  source: 'user' | 'timeout' | 'api' | 'superseded';
+}
 interface PermissionChangedEvent { gate: keyof PermissionStatus; value: Gate }
 ```
 
-`permissionChanged` is not emitted by either platform in this version; it's reserved.
+`source` is `user` for the Stop button, notification action or system alert; `timeout`
+for the Android `maxRingMs` cap; `api` for `stopRinging()`; `superseded` when another
+alarm fired while this one was ringing (Android). An unknown native source is reported
+as `api`. `permissionChanged` is not emitted by either platform in this version.
 
-### `RingingAlarm` / `PendingAction`
+### `RingingAlarm` / `PendingAction` / `RingScreenProps` / `ScheduledAlarm`
 
 ```ts
 interface RingingAlarm {
@@ -171,22 +189,8 @@ interface RingingAlarm {
   firedAt: number;
   scheduledFor: number;
 }
-
 interface PendingAction { id: string; action: 'stopped' | 'fired'; at: number }
-```
-
-### `RingScreenProps`
-
-```ts
-interface RingScreenProps {
-  alarm: RingingAlarm;
-  stop: () => Promise<void>;
-}
-```
-
-### `ScheduledAlarm`
-
-```ts
+interface RingScreenProps { alarm: RingingAlarm; stop: () => Promise<void> }
 interface ScheduledAlarm extends AlarmInput {
   nextFireAt: number; // epoch ms, as the OS reports it
   backend: Backend;

@@ -27,7 +27,9 @@ Intents are only resolvable by the system when compiled into the app target itse
 cp node_modules/react-native-wake-alarm/ios/Templates/WakeAlarmIntents.swift ios/YourApp/
 ```
 
-Add it to your Xcode target, then register it in `AppDelegate.swift`:
+Add it to your Xcode target, then register it in `AppDelegate.swift`. The same call also
+installs the library's notification delegate (below) early enough to see a cold-start
+tap; put it after any other library that sets `UNUserNotificationCenter.current().delegate`:
 
 ```swift
 import WakeAlarm
@@ -85,7 +87,7 @@ standard time-sensitive banner with a **Stop** action.
 | `ok / alarm_kit` | Scheduled as a real system alarm. |
 | `ok_degraded / notification_fallback` | Scheduled as a notification instead of AlarmKit — either AlarmKit is unavailable (below iOS 26) or not yet decided, **or** AlarmKit is available but the user denied it while notifications are still granted. |
 | `ok_degraded / no_notification_permission` | AlarmKit unavailable and notifications are also denied — the app must find another way to tell the user. |
-| `failed / alarm_kit_denied` | AlarmKit exists on this device but the user denied it, and notifications are also denied. |
+| `failed / alarm_kit_denied` | AlarmKit exists on this device but the user denied it, and notifications are also denied. Nothing is scheduled and nothing is persisted; a previous alarm with the same `id` is cancelled (upsert). |
 
 `requestPermissions()` requests AlarmKit authorization (iOS 26+) and then notification
 authorization, and always resolves the freshly re-read `PermissionStatus` — a denied or
@@ -97,14 +99,27 @@ promise.
 `fired` and `stopped` on the AlarmKit path come from watching
 `AlarmManager.shared.alarmUpdates` for alerting-state transitions — there is no native
 push per event, so a listener attached late still catches every transition from the
-moment it is watching. The notification fallback path has nothing observable in-process;
-your app finds out only when the user taps the notification or its Stop action, via
-`consumePendingAction()` on cold start or the `stopped` listener if JS is already
-running.
+moment it is watching.
 
-`getRinging()` on iOS reports the currently alerting AlarmKit alarm, if any, with
-`firedAt` approximated as the current time (AlarmKit does not report the original fire
-instant). Below iOS 26, or once the notification path is in play, `getRinging()` returns
+On the notification path the library owns `UNUserNotificationCenter.current().delegate`
+for its own `WAKE_ALARM` category through `WakeAlarmNotificationProxy`. It is installed
+by `WakeAlarmIntentsRegistration.install()` at launch and again when the module loads
+(idempotent), and it forwards every other notification to whichever delegate your app or
+another library had set — that delegate is restored if the module is torn down. For an
+alarm notification it returns `[.banner, .list, .sound]` from `willPresent`, so an
+alarm that lands while the app is in the foreground is still shown and heard, and it
+records `stopped` when the user taps **Stop** or the notification itself. If your app
+sets its own delegate *after* `install()`, the alarm handling is off until the module
+loads on the first API call.
+
+Every `fired` and `stopped` — from AlarmKit, the Stop App Intent, a notification
+response or `stopRinging()` — is parked for `consumePendingAction()` **and** emitted;
+a live JS listener clears the parked copy on delivery. The slot holds one action.
+
+`getRinging()` on iOS reads an in-memory map of alerting AlarmKit alarms kept by the
+update watcher and seeded once when the module loads, plus the cached record for title,
+body and payload. `firedAt` is the observed alerting transition (or the seed time for an
+alert older than the module). Below iOS 26, or on the notification path, it returns
 `null` — there is no ringing state to observe outside AlarmKit.
 
 ## Simulator limitation

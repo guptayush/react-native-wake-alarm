@@ -2,7 +2,8 @@
 
 ## 0.1.0
 
-First release. New architecture only (TurboModule), bare React Native and Expo.
+First release. New architecture only (TurboModule), bare React Native and Expo,
+React Native 0.80 or later.
 
 ### Capabilities
 
@@ -22,7 +23,18 @@ First release. New architecture only (TurboModule), bare React Native and Expo.
 - Synchronous `getRinging()`, `stopRinging()`, fired/stopped events, and
   `consumePendingAction()` for actions that happen while JavaScript isn't running (cold
   start, an App Intent, a notification tap).
-- An overridable ring screen (`registerRingScreen`) with a plain default.
+- An overridable ring screen (`registerRingScreen`) with a plain default. The
+  `WakeAlarmRing` root is registered with `AppRegistry` when the package is imported,
+  so the lock-screen activity has a component to start even when the alarm fires with
+  the app process dead; `registerRingScreen` swaps only the inner component.
+- Import costs one `AppRegistry.registerComponent`; the TurboModule is resolved on the
+  first API call.
+- Every `fired`/`stopped` is parked for `consumePendingAction()` **and** emitted; a
+  live listener clears the parked copy. `StoppedEvent.source` includes `superseded`
+  for an Android alarm cut short by a second one firing, which keeps the ring screen up.
+- iOS < 26: the library's `UNUserNotificationCenterDelegate` proxy shows the alarm
+  banner in the foreground and records `stopped` for the Stop action and the tap,
+  forwarding everything else to the host's delegate.
 - An Expo config plugin: Info.plist and entitlement edits, the iOS Stop-intent Swift
   file and `AppDelegate` registration, and sound file copying for both platforms.
 

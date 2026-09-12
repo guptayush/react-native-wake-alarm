@@ -35,6 +35,7 @@ class RingService : Service() {
   }
 
   private fun startRing(slot: Slot) {
+    if (RingState.current != null) tearDownSession("api")
     val now = System.currentTimeMillis()
     RingState.set(Ringing(slot.alarmId, slot.title, slot.body, slot.payloadJson, now, slot.nextFireAt, slot.maxRingMs, slot.sound))
     RingNotification.ensureChannel(this)
@@ -45,8 +46,18 @@ class RingService : Service() {
       } else {
         startForeground(RingNotification.NOTIFICATION_ID, notification)
       }
-    } catch (_: Throwable) {
-      runCatching { NotificationManagerCompat.from(this).notify(RingNotification.NOTIFICATION_ID, notification) }
+    }
+    // Without foreground status the OS kills this process within seconds; stop cleanly and leave a notification instead.
+    catch (_: Throwable) {
+      runCatching {
+        NotificationManagerCompat.from(this)
+          .notify(RingNotification.NOTIFICATION_ID, RingNotification.build(this, slot, withFullScreen = false, degraded = true))
+      }
+      PendingActionStore(this).record(slot.alarmId, "fired", now)
+      RingState.clear()
+      WakeLocks.release()
+      stopSelf()
+      return
     }
     player = RingPlayer(this).also { it.start(slot.sound) }
     startVibration()
@@ -56,19 +67,23 @@ class RingService : Service() {
   }
 
   private fun stopRing(source: String) {
+    tearDownSession(source)
+    runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+    runCatching { NotificationManagerCompat.from(this).cancel(RingNotification.NOTIFICATION_ID) }
+    WakeLocks.release()
+    stopSelf()
+  }
+
+  private fun tearDownSession(source: String) {
     val ringing = RingState.current
     timeout?.let(handler::removeCallbacks); timeout = null
     player?.stop(); player = null
     stopVibration()
     RingState.clear()
-    val at = System.currentTimeMillis()
     if (ringing != null) {
+      val at = System.currentTimeMillis()
       if (RingEvents.hasListeners()) RingEvents.emitStopped(ringing.id, at, source) else PendingActionStore(this).record(ringing.id, "stopped", at)
     }
-    runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
-    runCatching { NotificationManagerCompat.from(this).cancel(RingNotification.NOTIFICATION_ID) }
-    WakeLocks.release()
-    stopSelf()
   }
 
   private fun vibrator(): Vibrator? = runCatching {
@@ -77,15 +92,17 @@ class RingService : Service() {
   }.getOrNull()
 
   private fun startVibration() = runCatching {
-    vibrator()?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 700, 400), 1))
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      vibrator()?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 700, 400), 1))
+    }
   }
 
   private fun stopVibration() = runCatching { vibrator()?.cancel() }
 
   override fun onDestroy() {
-    timeout?.let(handler::removeCallbacks)
-    player?.stop()
-    stopVibration()
+    tearDownSession("api")
+    runCatching { NotificationManagerCompat.from(this).cancel(RingNotification.NOTIFICATION_ID) }
+    WakeLocks.release()
     super.onDestroy()
   }
 
@@ -107,7 +124,11 @@ class RingService : Service() {
 
     fun postDegraded(context: Context, slot: Slot) {
       RingNotification.ensureChannel(context)
-      runCatching { NotificationManagerCompat.from(context).notify(RingNotification.NOTIFICATION_ID, RingNotification.build(context, slot, withFullScreen = false)) }
+      runCatching {
+        NotificationManagerCompat.from(context)
+          .notify(RingNotification.NOTIFICATION_ID, RingNotification.build(context, slot, withFullScreen = false, degraded = true))
+      }
+      PendingActionStore(context).record(slot.alarmId, "fired", System.currentTimeMillis())
     }
   }
 }

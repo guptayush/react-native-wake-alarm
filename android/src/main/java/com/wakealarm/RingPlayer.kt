@@ -14,6 +14,7 @@ class RingPlayer(private val context: Context) {
   /** Starts looping playback on the ALARM stream. Returns false only if even the system default could not start. */
   fun start(sound: String): Boolean {
     stop()
+    retried = false
     val uri = resolve(sound) ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM) ?: return false
     return startUri(uri, fallbackOnError = true)
   }

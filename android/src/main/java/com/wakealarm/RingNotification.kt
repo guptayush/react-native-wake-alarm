@@ -28,8 +28,13 @@ object RingNotification {
     runCatching { nm.createNotificationChannel(channel) }
   }
 
-  fun build(context: Context, slot: Slot, withFullScreen: Boolean): Notification {
-    val open = Intent(context, WakeAlarmActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+  fun build(context: Context, slot: Slot, withFullScreen: Boolean, degraded: Boolean = false): Notification {
+    val open = if (degraded) {
+      context.packageManager.getLaunchIntentForPackage(context.packageName)
+        ?: Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${context.packageName}"))
+    } else {
+      Intent(context, WakeAlarmActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    }
     val openPi = PendingIntent.getActivity(context, 1, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     val stop = Intent(context, RingService::class.java).setAction(RingService.ACTION_STOP).putExtra(RingService.EXTRA_SOURCE, "user")
     val stopPi = PendingIntent.getService(context, 2, stop, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -41,12 +46,12 @@ object RingNotification {
       .setCategory(NotificationCompat.CATEGORY_ALARM)
       .setPriority(NotificationCompat.PRIORITY_MAX)
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-      .setOngoing(true)
-      .setAutoCancel(false)
+      .setOngoing(!degraded)
+      .setAutoCancel(degraded)
       .setShowWhen(false)
       .setContentIntent(openPi)
-      .addAction(0, "Stop", stopPi)
-    if (withFullScreen) b.setFullScreenIntent(openPi, true)
+    if (!degraded) b.addAction(0, "Stop", stopPi)
+    if (withFullScreen && !degraded) b.setFullScreenIntent(openPi, true)
     return b.build()
   }
 

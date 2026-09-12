@@ -446,7 +446,7 @@ The `docs/` directory carries one guide per topic. Summary:
 GitHub Actions on push and pull request: lint, `tsc`, Jest, Android library
 build with JUnit, iOS library build with XCTest on macOS. A release workflow
 on tag `v*` reruns the checks and publishes to npm with provenance using an
-`NPM_TOKEN` secret. First release is `0.1.0` with a "tested on" table.
+`NPM_TOKEN` secret. First release is `1.0.0` with a "tested on" table.
 
 ## 15. Repository layout
 

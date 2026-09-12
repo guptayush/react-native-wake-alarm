@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0
+## 1.0.0
 
 First release. New architecture only (TurboModule), bare React Native and Expo,
 React Native 0.80 or later.

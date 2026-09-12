@@ -3,7 +3,7 @@ import native from '../__mocks__/NativeWakeAlarm';
 import { createApi } from '../api';
 
 jest.mock('../NativeWakeAlarm');
-const api = createApi(native);
+const api = createApi(() => native);
 const nativeStatus = {
   notifications: 'granted',
   exactAlarm: 'denied',

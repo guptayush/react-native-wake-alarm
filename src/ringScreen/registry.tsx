@@ -1,36 +1,13 @@
-import type { ComponentType } from 'react';
 import { AppRegistry } from 'react-native';
-import type { RingScreenProps, WakeAlarmApi } from '../types';
-import {
-  __resetCurrentForTests,
-  getRegisteredRingScreen,
-  setRegisteredRingScreen,
-} from './current';
+import type { WakeAlarmApi } from '../types';
 import { RingRoot } from './RingRoot';
 
 export const RING_COMPONENT_NAME = 'WakeAlarmRing';
 
-export { getRegisteredRingScreen };
-
-let appRegistryDone = false;
-
-export function ensureRingRootRegistered(api: WakeAlarmApi): void {
-  if (appRegistryDone) return;
-  appRegistryDone = true;
+// Called once at import. The ring activity starts this surface with only module scope
+// evaluated, so a lazy registration would leave it with nothing to run.
+export function registerRingRoot(api: WakeAlarmApi): void {
   AppRegistry.registerComponent(RING_COMPONENT_NAME, () => () => (
     <RingRoot api={api} />
   ));
-}
-
-export function registerRingScreen(
-  component: ComponentType<RingScreenProps>,
-  api: WakeAlarmApi
-): void {
-  setRegisteredRingScreen(component);
-  ensureRingRootRegistered(api);
-}
-
-export function __resetRegistryForTests(): void {
-  __resetCurrentForTests();
-  appRegistryDone = false;
 }

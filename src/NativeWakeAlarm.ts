@@ -63,4 +63,12 @@ export interface Spec extends TurboModule {
   readonly onPermissionChanged: CodegenTypes.EventEmitter<NativePermissionChangedEvent>;
 }
 
-export default TurboModuleRegistry.getEnforcing<Spec>('WakeAlarm');
+let cached: Spec | null = null;
+
+// Resolved on first use, not on import: instantiating the module runs native start-up work.
+export function getNativeWakeAlarm(): Spec {
+  if (cached === null) {
+    cached = TurboModuleRegistry.getEnforcing<Spec>('WakeAlarm');
+  }
+  return cached;
+}

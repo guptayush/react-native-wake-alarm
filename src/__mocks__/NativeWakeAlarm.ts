@@ -53,4 +53,6 @@ const mock: MockedSpec = {
   ) as unknown as Spec['onPermissionChanged'],
 };
 
+export const getNativeWakeAlarm = (): Spec => mock as unknown as Spec;
+
 export default mock;

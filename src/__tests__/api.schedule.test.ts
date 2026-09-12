@@ -4,7 +4,7 @@ import { createApi } from '../api';
 
 jest.mock('../NativeWakeAlarm');
 
-const api = createApi(native);
+const api = createApi(() => native);
 const okNative = {
   status: 'ok',
   backend: 'alarm_manager',

@@ -29,10 +29,7 @@ import {
   mapPermissionStatus,
   toGate,
 } from './mapResult';
-import {
-  ensureRingRootRegistered,
-  registerRingScreen as registerRingScreenImpl,
-} from './ringScreen/registry';
+import { setRegisteredRingScreen } from './ringScreen/current';
 import { validateAlarmInput, WakeAlarmInputError } from './validate';
 
 const ID_PATTERN = /^[A-Za-z0-9_.-]{1,64}$/;
@@ -53,7 +50,9 @@ const EVENTS: readonly WakeAlarmEvent[] = [
   'stopped',
   'permissionChanged',
 ];
-const STOP_SOURCES = new Set(['user', 'timeout', 'api']);
+export const STOP_SOURCES: ReadonlySet<string> = new Set<
+  StoppedEvent['source']
+>(['user', 'timeout', 'api', 'superseded']);
 const GATE_KEYS = new Set<keyof PermissionStatus>([
   'notifications',
   'exactAlarm',
@@ -72,10 +71,19 @@ function parseJson<T>(json: string | null): T | null {
   }
 }
 
-export function createApi(native: Spec): WakeAlarmApi {
+export function createApi(getNative: () => Spec): WakeAlarmApi {
+  // Native parks every fired/stopped action for consumePendingAction() and emits it too.
+  // Once a live listener has seen an event, the parked copy is a duplicate: clear it once.
+  let lastCleared = '';
+  const clearParkedDuplicate = (action: string, id: string, at: number) => {
+    const key = `${action}:${id}:${at}`;
+    if (key === lastCleared) return;
+    lastCleared = key;
+    getNative().consumePendingActionJson();
+  };
+
   const api = {
     async schedule(alarm: AlarmInput): Promise<ScheduleResult> {
-      ensureRingRootRegistered(api);
       let normalised;
       try {
         normalised = validateAlarmInput(alarm);
@@ -87,7 +95,7 @@ export function createApi(native: Spec): WakeAlarmApi {
         };
       }
       try {
-        return mapScheduleResult(await native.schedule(normalised));
+        return mapScheduleResult(await getNative().schedule(normalised));
       } catch (e) {
         return {
           status: 'failed',
@@ -102,17 +110,17 @@ export function createApi(native: Spec): WakeAlarmApi {
           'id',
           'must match /^[A-Za-z0-9_.-]{1,64}$/'
         );
-      await native.cancel(id);
+      await getNative().cancel(id);
     },
-    cancelAll: () => native.cancelAll(),
+    cancelAll: () => getNative().cancelAll(),
     async getScheduled(): Promise<ScheduledAlarm[]> {
-      return (await native.getScheduled()).map(mapScheduledAlarm);
+      return (await getNative().getScheduled()).map(mapScheduledAlarm);
     },
     async getPermissionStatus(): Promise<PermissionStatus> {
-      return mapPermissionStatus(await native.getPermissionStatus());
+      return mapPermissionStatus(await getNative().getPermissionStatus());
     },
     async requestPermissions(): Promise<PermissionStatus> {
-      return mapPermissionStatus(await native.requestPermissions());
+      return mapPermissionStatus(await getNative().requestPermissions());
     },
     async openSettings(kind: SettingsKind): Promise<void> {
       if (!SETTINGS_KINDS.includes(kind))
@@ -120,36 +128,33 @@ export function createApi(native: Spec): WakeAlarmApi {
           'kind',
           `must be one of ${SETTINGS_KINDS.join(', ')}`
         );
-      await native.openSettings(kind);
+      await getNative().openSettings(kind);
     },
-    getRinging: (): RingingAlarm | null => {
-      ensureRingRootRegistered(api);
-      return parseJson<RingingAlarm>(native.getRingingJson());
-    },
-    stopRinging: () => native.stopRinging(),
-    consumePendingAction: (): PendingAction | null => {
-      ensureRingRootRegistered(api);
-      return parseJson<PendingAction>(native.consumePendingActionJson());
-    },
+    getRinging: (): RingingAlarm | null =>
+      parseJson<RingingAlarm>(getNative().getRingingJson()),
+    stopRinging: () => getNative().stopRinging(),
+    consumePendingAction: (): PendingAction | null =>
+      parseJson<PendingAction>(getNative().consumePendingActionJson()),
     addListener(event: WakeAlarmEvent, cb: (e: never) => void): Subscription {
-      ensureRingRootRegistered(api);
       switch (event) {
         case 'fired':
-          return native.onFired((e: NativeFiredEvent) =>
-            (cb as (x: FiredEvent) => void)({ id: e.id, at: e.at })
-          );
+          return getNative().onFired((e: NativeFiredEvent) => {
+            clearParkedDuplicate('fired', e.id, e.at);
+            (cb as (x: FiredEvent) => void)({ id: e.id, at: e.at });
+          });
         case 'stopped':
-          return native.onStopped((e: NativeStoppedEvent) =>
+          return getNative().onStopped((e: NativeStoppedEvent) => {
+            clearParkedDuplicate('stopped', e.id, e.at);
             (cb as (x: StoppedEvent) => void)({
               id: e.id,
               at: e.at,
               source: (STOP_SOURCES.has(e.source)
                 ? e.source
                 : 'api') as StoppedEvent['source'],
-            })
-          );
+            });
+          });
         case 'permissionChanged':
-          return native.onPermissionChanged(
+          return getNative().onPermissionChanged(
             (e: NativePermissionChangedEvent) => {
               if (!GATE_KEYS.has(e.gate as keyof PermissionStatus)) return;
               (cb as (x: PermissionChangedEvent) => void)({
@@ -166,7 +171,7 @@ export function createApi(native: Spec): WakeAlarmApi {
       }
     },
     registerRingScreen(component: ComponentType<RingScreenProps>) {
-      registerRingScreenImpl(component, api);
+      setRegisteredRingScreen(component);
     },
   } as WakeAlarmApi;
   return api;

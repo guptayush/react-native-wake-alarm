@@ -48,17 +48,21 @@ const asBackend = (b: string): Backend =>
 export function mapScheduleResult(n: NativeScheduleResult): ScheduleResult {
   switch (n.status) {
     case 'ok':
+      if (!BACKENDS.has(n.backend))
+        return nativeError(`unknown backend: ${n.backend}`);
       return {
         status: 'ok',
-        backend: asBackend(n.backend),
+        backend: n.backend as Backend,
         nextFireAt: n.nextFireAt,
       };
     case 'ok_degraded':
       if (!DEGRADED.has(n.reason))
         return nativeError(`unknown reason: ${n.reason}`);
+      if (!BACKENDS.has(n.backend))
+        return nativeError(`unknown backend: ${n.backend}`);
       return {
         status: 'ok_degraded',
-        backend: asBackend(n.backend),
+        backend: n.backend as Backend,
         nextFireAt: n.nextFireAt,
         reason: n.reason as DegradedReason,
       };

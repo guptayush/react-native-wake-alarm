@@ -95,7 +95,7 @@ describe('mapScheduleResult', () => {
       message: 'unknown reason: nope',
     });
   });
-  it('defaults unknown backend to alarm_manager', () => {
+  it('treats an unknown backend as native_error', () => {
     expect(
       mapScheduleResult({
         status: 'ok',
@@ -104,11 +104,45 @@ describe('mapScheduleResult', () => {
         nextFireAt: 1,
         message: '',
       })
-    ).toEqual({ status: 'ok', backend: 'alarm_manager', nextFireAt: 1 });
+    ).toEqual({
+      status: 'failed',
+      reason: 'native_error',
+      message: 'unknown backend: bogus',
+    });
+    expect(
+      mapScheduleResult({
+        status: 'ok_degraded',
+        backend: 'bogus',
+        reason: 'notification_fallback',
+        nextFireAt: 1,
+        message: '',
+      })
+    ).toEqual({
+      status: 'failed',
+      reason: 'native_error',
+      message: 'unknown backend: bogus',
+    });
   });
 });
 
 describe('mapScheduledAlarm', () => {
+  it('falls back to alarm_manager for an unknown backend', () => {
+    expect(
+      mapScheduledAlarm({
+        id: 'a',
+        hour: 1,
+        minute: 2,
+        days: [],
+        title: 't',
+        body: '',
+        sound: '',
+        payloadJson: '{}',
+        maxRingMs: 1000,
+        nextFireAt: 9,
+        backend: 'bogus',
+      }).backend
+    ).toBe('alarm_manager');
+  });
   it('parses payload and drops empty optionals', () => {
     expect(
       mapScheduledAlarm({

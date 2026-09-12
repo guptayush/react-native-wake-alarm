@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import native, { emit } from '../__mocks__/NativeWakeAlarm';
-import { createApi } from '../api';
+import { createApi, STOP_SOURCES } from '../api';
 
 jest.mock('../NativeWakeAlarm');
-const api = createApi(native);
+const api = createApi(() => native);
 
 describe('ring lifecycle', () => {
   beforeEach(() => {
@@ -72,6 +72,46 @@ describe('ring lifecycle', () => {
     s3.remove();
     emit('onFired', { id: 'b', at: 3 });
     expect(fired).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts every documented stop source, including superseded', () => {
+    expect([...STOP_SOURCES].sort()).toEqual([
+      'api',
+      'superseded',
+      'timeout',
+      'user',
+    ]);
+    const stopped = jest.fn();
+    const sub = api.addListener('stopped', stopped);
+    emit('onStopped', { id: 'a', at: 2, source: 'superseded' });
+    expect(stopped).toHaveBeenCalledWith({
+      id: 'a',
+      at: 2,
+      source: 'superseded',
+    });
+    sub.remove();
+  });
+
+  it('clears the parked duplicate once per live fired/stopped delivery', () => {
+    native.consumePendingActionJson.mockReturnValue(null);
+    const first = jest.fn();
+    const second = jest.fn();
+    const subs = [
+      api.addListener('fired', first),
+      api.addListener('fired', second),
+      api.addListener('stopped', first),
+    ];
+    emit('onFired', { id: 'a', at: 1 });
+    expect(native.consumePendingActionJson).toHaveBeenCalledTimes(1);
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
+    emit('onStopped', { id: 'a', at: 2, source: 'user' });
+    expect(native.consumePendingActionJson).toHaveBeenCalledTimes(2);
+    emit('onStopped', { id: 'a', at: 2, source: 'user' });
+    expect(native.consumePendingActionJson).toHaveBeenCalledTimes(2);
+    emit('onPermissionChanged', { gate: 'exactAlarm', value: 'granted' });
+    expect(native.consumePendingActionJson).toHaveBeenCalledTimes(2);
+    subs.forEach((s) => s.remove());
   });
 
   it('addListener normalises unknown stop sources and gates', () => {

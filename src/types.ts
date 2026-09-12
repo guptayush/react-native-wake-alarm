@@ -89,7 +89,7 @@ export interface FiredEvent {
 export interface StoppedEvent {
   id: string;
   at: number;
-  source: 'user' | 'timeout' | 'api';
+  source: 'user' | 'timeout' | 'api' | 'superseded';
 }
 export interface PermissionChangedEvent {
   gate: keyof PermissionStatus;

@@ -10,6 +10,7 @@ import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.PermissionAwareActivity
 import com.facebook.react.modules.core.PermissionListener
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 class WakeAlarmModule(reactContext: ReactApplicationContext) : NativeWakeAlarmSpec(reactContext), RingEvents.Listener {
@@ -33,6 +34,9 @@ class WakeAlarmModule(reactContext: ReactApplicationContext) : NativeWakeAlarmSp
   override fun schedule(input: ReadableMap, promise: Promise) {
     try {
       val id = input.getString("id") ?: return promise.resolve(failed("invalid_input", "id missing"))
+      if (!input.hasKey("hour") || !input.hasKey("minute") || !input.hasKey("maxRingMs")) {
+        return promise.resolve(failed("invalid_input", "hour, minute and maxRingMs are required"))
+      }
       if (!scheduler.canScheduleExact()) return promise.resolve(failed("no_exact_alarm_permission"))
       val days = input.getArray("days")?.let { a -> (0 until a.size()).map { a.getInt(it) } } ?: emptyList()
       val hour = input.getInt("hour"); val minute = input.getInt("minute")
@@ -95,11 +99,12 @@ class WakeAlarmModule(reactContext: ReactApplicationContext) : NativeWakeAlarmSp
       app.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
     if (activity == null || !needsPrompt) return promise.resolve(status())
     val code = requestCodes.incrementAndGet()
+    val resolved = AtomicBoolean(false)
     val listener = PermissionListener { requestCode, _, _ ->
-      if (requestCode == code) { promise.resolve(status()); true } else false
+      if (requestCode == code) { if (resolved.compareAndSet(false, true)) promise.resolve(status()); true } else false
     }
     runCatching { activity.requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), code, listener) }
-      .onFailure { promise.resolve(status()) }
+      .onFailure { if (resolved.compareAndSet(false, true)) promise.resolve(status()) }
   }
 
   override fun openSettings(kind: String, promise: Promise) = safely(promise) {

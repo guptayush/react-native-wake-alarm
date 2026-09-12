@@ -15,10 +15,21 @@ class AlarmScheduler(private val context: Context, private val store: SlotStore)
     return Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()
   }
 
-  /** Persists then arms every slot. Returns false if any arm was refused; slots stay persisted so a later re-arm can retry. */
+  /** Persists then arms every slot, all-or-nothing. Returns false if any arm was refused. */
   fun scheduleAll(slots: List<Slot>): Boolean {
     slots.forEach(store::put)
-    return slots.map(::arm).all { it }
+    val armed = mutableListOf<Slot>()
+    for (slot in slots) {
+      if (arm(slot)) {
+        armed.add(slot)
+      } else {
+        // Never leave a half-armed alarm: a caller told "failed" must be able to trust that nothing fires.
+        armed.forEach { disarm(it.key) }
+        store.removeAlarm(slot.alarmId)
+        return false
+      }
+    }
+    return true
   }
 
   fun cancelAlarm(alarmId: String) {

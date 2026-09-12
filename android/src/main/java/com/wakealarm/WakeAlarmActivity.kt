@@ -11,7 +11,9 @@ import com.facebook.react.defaults.DefaultReactActivityDelegate
 class WakeAlarmActivity : ReactActivity() {
   private val finishOnStop = object : RingEvents.Listener {
     override fun onFired(id: String, at: Long) {}
-    override fun onStopped(id: String, at: Long, source: String) { runOnUiThread { if (!isFinishing) finish() } }
+    override fun onStopped(id: String, at: Long, source: String) {
+      runOnUiThread { if (!isFinishing && RingState.current == null) finish() }
+    }
   }
 
   override fun getMainComponentName(): String = MAIN_COMPONENT

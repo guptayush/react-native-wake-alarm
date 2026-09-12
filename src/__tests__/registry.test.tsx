@@ -102,14 +102,32 @@ describe('registry', () => {
       tree = create(<RingRoot api={api} />);
     });
     expect(tree.toJSON()).not.toBeNull();
+    native.getRingingJson.mockReturnValue(null);
     act(() => {
       emit('onStopped', { id: 'a', at: 9, source: 'user' });
     });
     expect(tree.toJSON()).toBeNull();
-    native.getRingingJson.mockReturnValue(null);
     act(() => {
       tree = create(<RingRoot api={api} />);
     });
     expect(tree.toJSON()).toBeNull();
+  });
+
+  it('a fired event with a different ringing alarm re-renders the new title', () => {
+    native.getRingingJson.mockReturnValue(ringing);
+    const Custom = ({ alarm }: RingScreenProps) => <Text>{alarm.title}</Text>;
+    registerRingScreen(Custom, api);
+    let tree!: ReturnType<typeof create>;
+    act(() => {
+      tree = create(<RingRoot api={api} />);
+    });
+    expect(tree.root.findByType(Text).props.children).toBe('Wake');
+    native.getRingingJson.mockReturnValue(
+      '{"id":"b","title":"Second","firedAt":10,"scheduledFor":10}'
+    );
+    act(() => {
+      emit('onFired', { id: 'b', at: 10 });
+    });
+    expect(tree.root.findByType(Text).props.children).toBe('Second');
   });
 });

@@ -7,8 +7,13 @@ export function RingRoot({ api }: { api: WakeAlarmApi }) {
     api.getRinging()
   );
   useEffect(() => {
-    const sub = api.addListener('stopped', () => setAlarm(null));
-    return () => sub.remove();
+    const reread = () => setAlarm(api.getRinging());
+    const stoppedSub = api.addListener('stopped', reread);
+    const firedSub = api.addListener('fired', reread);
+    return () => {
+      stoppedSub.remove();
+      firedSub.remove();
+    };
   }, [api]);
   const stop = useCallback(() => api.stopRinging(), [api]);
   if (!alarm) return null;

@@ -1,6 +1,8 @@
+import type { ComponentType } from 'react';
 import type { Spec } from './NativeWakeAlarm';
 import type {
   AlarmInput,
+  RingScreenProps,
   ScheduledAlarm,
   ScheduleResult,
   WakeAlarmApi,
@@ -27,6 +29,10 @@ import {
   mapPermissionStatus,
   toGate,
 } from './mapResult';
+import {
+  ensureRingRootRegistered,
+  registerRingScreen as registerRingScreenImpl,
+} from './ringScreen/registry';
 import { validateAlarmInput, WakeAlarmInputError } from './validate';
 
 const ID_PATTERN = /^[A-Za-z0-9_.-]{1,64}$/;
@@ -67,8 +73,9 @@ function parseJson<T>(json: string | null): T | null {
 }
 
 export function createApi(native: Spec): WakeAlarmApi {
-  const api: Partial<WakeAlarmApi> = {
+  const api = {
     async schedule(alarm: AlarmInput): Promise<ScheduleResult> {
+      ensureRingRootRegistered(api);
       let normalised;
       try {
         normalised = validateAlarmInput(alarm);
@@ -115,12 +122,17 @@ export function createApi(native: Spec): WakeAlarmApi {
         );
       await native.openSettings(kind);
     },
-    getRinging: (): RingingAlarm | null =>
-      parseJson<RingingAlarm>(native.getRingingJson()),
+    getRinging: (): RingingAlarm | null => {
+      ensureRingRootRegistered(api);
+      return parseJson<RingingAlarm>(native.getRingingJson());
+    },
     stopRinging: () => native.stopRinging(),
-    consumePendingAction: (): PendingAction | null =>
-      parseJson<PendingAction>(native.consumePendingActionJson()),
+    consumePendingAction: (): PendingAction | null => {
+      ensureRingRootRegistered(api);
+      return parseJson<PendingAction>(native.consumePendingActionJson());
+    },
     addListener(event: WakeAlarmEvent, cb: (e: never) => void): Subscription {
+      ensureRingRootRegistered(api);
       switch (event) {
         case 'fired':
           return native.onFired((e: NativeFiredEvent) =>
@@ -153,6 +165,9 @@ export function createApi(native: Spec): WakeAlarmApi {
           );
       }
     },
-  };
-  return api as WakeAlarmApi;
+    registerRingScreen(component: ComponentType<RingScreenProps>) {
+      registerRingScreenImpl(component, api);
+    },
+  } as WakeAlarmApi;
+  return api;
 }

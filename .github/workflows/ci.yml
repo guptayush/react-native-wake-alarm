@@ -116,6 +116,10 @@ jobs:
         run: |
           yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}"
 
+      - name: Android unit tests
+        working-directory: example/android
+        run: ./gradlew :react-native-wake-alarm:testDebugUnitTest --console=plain
+
   build-ios:
     runs-on: macos-latest
 
@@ -165,4 +169,17 @@ jobs:
       - name: Build example for iOS
         run: |
           yarn turbo run build:ios --cache-dir="${{ env.TURBO_CACHE_DIR }}"
+
+  swift-test:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Use appropriate Xcode version
+        uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
+        with:
+          xcode-version: 26
+      - name: Swift core tests
+        working-directory: ios
+        run: swift test
 

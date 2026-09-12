@@ -1,0 +1,93 @@
+import Foundation
+import UserNotifications
+
+/// iOS < 26 path (and the fallback when AlarmKit is unavailable or denied):
+/// a time-sensitive local notification with a Stop action. Passes Focus, not the silent switch.
+final class NotificationScheduler {
+  static let categoryId = "WAKE_ALARM"
+  private let center = UNUserNotificationCenter.current()
+  private let calendar = Calendar.autoupdatingCurrent
+
+  func authorizationStatus(_ completion: @escaping (String) -> Void) {
+    center.getNotificationSettings { s in
+      switch s.authorizationStatus {
+      case .authorized, .provisional, .ephemeral: completion("granted")
+      case .denied: completion("denied")
+      case .notDetermined: completion("not_determined")
+      @unknown default: completion("not_determined")
+      }
+    }
+  }
+
+  func requestAuthorization(_ completion: @escaping (String) -> Void) {
+    center.requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] _, _ in
+      self?.authorizationStatus(completion)
+    }
+  }
+
+  private func ensureCategory(_ completion: @escaping () -> Void) {
+    center.getNotificationCategories { [center] existing in
+      if existing.contains(where: { $0.identifier == Self.categoryId }) { completion(); return }
+      let stop = UNNotificationAction(identifier: "STOP", title: "Stop", options: [.destructive])
+      let category = UNNotificationCategory(identifier: Self.categoryId, actions: [stop], intentIdentifiers: [], options: [])
+      center.setNotificationCategories(existing.union([category]))
+      completion()
+    }
+  }
+
+  private func sound(named name: String) -> UNNotificationSound {
+    guard !name.isEmpty else { return .default }
+    for ext in ["caf", "wav", "aiff"] where Bundle.main.url(forResource: name, withExtension: ext) != nil {
+      return UNNotificationSound(named: UNNotificationSoundName("\(name).\(ext)"))
+    }
+    return .default
+  }
+
+  private func identifier(_ id: String, _ isoWeekday: Int?) -> String { "wakealarm.\(id).\(isoWeekday.map(String.init) ?? "once")" }
+
+  /// Schedules one request per weekday (or one one-off). Completes with the earliest fire date.
+  func schedule(_ record: AlarmRecord, completion: @escaping (Date?) -> Void) {
+    cancel(record.id)
+    ensureCategory { [weak self] in
+      guard let self else { completion(nil); return }
+      let content = UNMutableNotificationContent()
+      content.title = record.title
+      content.body = record.body.isEmpty ? "Alarm" : record.body
+      content.sound = self.sound(named: record.sound)
+      content.categoryIdentifier = Self.categoryId
+      content.userInfo = ["wakeAlarmId": record.id, "payloadJson": record.payloadJson]
+      if #available(iOS 15.0, *) { content.interruptionLevel = .timeSensitive }
+
+      let now = Date()
+      let days: [Int?] = record.days.isEmpty ? [nil] : record.days
+      var earliest: Date?
+      let group = DispatchGroup()
+      for day in days {
+        let fire = AlarmMath.nextFireDate(now: now, hour: record.hour, minute: record.minute, isoWeekday: day, calendar: self.calendar)
+        earliest = min(earliest ?? fire, fire)
+        let trigger: UNCalendarNotificationTrigger
+        if let day {
+          trigger = UNCalendarNotificationTrigger(dateMatching: DateComponents(hour: record.hour, minute: record.minute, weekday: WakeAlarmIds.weekday(fromIso: day)), repeats: true)
+        } else {
+          trigger = UNCalendarNotificationTrigger(dateMatching: self.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fire), repeats: false)
+        }
+        group.enter()
+        self.center.add(UNNotificationRequest(identifier: self.identifier(record.id, day), content: content, trigger: trigger)) { _ in group.leave() }
+      }
+      group.notify(queue: .main) { completion(earliest) }
+    }
+  }
+
+  func cancel(_ id: String) {
+    let ids = ([nil] + (1...7).map(Optional.some)).map { identifier(id, $0) }
+    center.removePendingNotificationRequests(withIdentifiers: ids)
+  }
+
+  func cancelAll(_ ids: [String]) { ids.forEach(cancel) }
+
+  func pendingIds(_ completion: @escaping (Set<String>) -> Void) {
+    center.getPendingNotificationRequests { reqs in
+      completion(Set(reqs.compactMap { $0.content.userInfo["wakeAlarmId"] as? String }))
+    }
+  }
+}

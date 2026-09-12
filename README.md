@@ -59,8 +59,12 @@ Every platform refusal is a typed result, never a silent failure. [docs/api.md](
 
 | Device | OS | Backgrounded | Killed | Locked | Silent/DND | Reboot |
 | --- | --- | --- | --- | --- | --- | --- |
-| Android emulator (`Medium_Phone_API_36.1`), example app | API 36 (Android 16) | ✓ (Δ 106 ms; heads-up banner, tap opened full-screen ring, Stop tore it down) | not yet run | not yet run | not yet run | not yet run |
+| Android emulator (`Medium_Phone_API_36.1`), example app | API 36 (Android 16) | ✓ (Δ 106 ms; heads-up banner, tap opened full-screen ring, Stop tore it down; full-screen not auto-granted (heads-up, then full-screen after tap)) | not yet run | not yet run | not yet run | not yet run |
 | iOS Simulator, example app | iOS 26.2 (Xcode 26.2) | simulator crashes on alert playback (Apple bug); needs hardware | not yet run | not yet run | simulator crashes on alert playback (Apple bug); needs hardware | not yet run |
+
+On the iOS simulator, the AlarmKit authorization prompt, scheduling, Live Activity creation
+and alert posting were all verified; only alert playback crashes the simulator's SpringBoard
+(an Apple bug), so sound and Stop still need a real device.
 
 Real-device results are collected with [`docs/device-testing.md`](docs/device-testing.md).
 

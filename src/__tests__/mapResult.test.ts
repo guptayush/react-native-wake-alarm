@@ -95,6 +95,17 @@ describe('mapScheduleResult', () => {
       message: 'unknown reason: nope',
     });
   });
+  it('defaults unknown backend to alarm_manager', () => {
+    expect(
+      mapScheduleResult({
+        status: 'ok',
+        backend: 'bogus',
+        reason: '',
+        nextFireAt: 1,
+        message: '',
+      })
+    ).toEqual({ status: 'ok', backend: 'alarm_manager', nextFireAt: 1 });
+  });
 });
 
 describe('mapScheduledAlarm', () => {
@@ -151,6 +162,128 @@ describe('mapScheduledAlarm', () => {
       maxRingMs: 1000,
       nextFireAt: 9,
       backend: 'notification',
+    });
+  });
+  it('omits payload for null, non-objects, arrays, empty objects', () => {
+    expect(
+      mapScheduledAlarm({
+        id: 'a',
+        hour: 1,
+        minute: 2,
+        days: [],
+        title: 't',
+        body: '',
+        sound: '',
+        payloadJson: 'null',
+        maxRingMs: 1000,
+        nextFireAt: 9,
+        backend: 'alarm_manager',
+      })
+    ).toEqual({
+      id: 'a',
+      hour: 1,
+      minute: 2,
+      days: [],
+      title: 't',
+      maxRingMs: 1000,
+      nextFireAt: 9,
+      backend: 'alarm_manager',
+    });
+    expect(
+      mapScheduledAlarm({
+        id: 'a',
+        hour: 1,
+        minute: 2,
+        days: [],
+        title: 't',
+        body: '',
+        sound: '',
+        payloadJson: '"x"',
+        maxRingMs: 1000,
+        nextFireAt: 9,
+        backend: 'alarm_manager',
+      })
+    ).toEqual({
+      id: 'a',
+      hour: 1,
+      minute: 2,
+      days: [],
+      title: 't',
+      maxRingMs: 1000,
+      nextFireAt: 9,
+      backend: 'alarm_manager',
+    });
+    expect(
+      mapScheduledAlarm({
+        id: 'a',
+        hour: 1,
+        minute: 2,
+        days: [],
+        title: 't',
+        body: '',
+        sound: '',
+        payloadJson: '1',
+        maxRingMs: 1000,
+        nextFireAt: 9,
+        backend: 'alarm_manager',
+      })
+    ).toEqual({
+      id: 'a',
+      hour: 1,
+      minute: 2,
+      days: [],
+      title: 't',
+      maxRingMs: 1000,
+      nextFireAt: 9,
+      backend: 'alarm_manager',
+    });
+    expect(
+      mapScheduledAlarm({
+        id: 'a',
+        hour: 1,
+        minute: 2,
+        days: [],
+        title: 't',
+        body: '',
+        sound: '',
+        payloadJson: '[1,2]',
+        maxRingMs: 1000,
+        nextFireAt: 9,
+        backend: 'alarm_manager',
+      })
+    ).toEqual({
+      id: 'a',
+      hour: 1,
+      minute: 2,
+      days: [],
+      title: 't',
+      maxRingMs: 1000,
+      nextFireAt: 9,
+      backend: 'alarm_manager',
+    });
+    expect(
+      mapScheduledAlarm({
+        id: 'a',
+        hour: 1,
+        minute: 2,
+        days: [],
+        title: 't',
+        body: '',
+        sound: '',
+        payloadJson: '{}',
+        maxRingMs: 1000,
+        nextFireAt: 9,
+        backend: 'alarm_manager',
+      })
+    ).toEqual({
+      id: 'a',
+      hour: 1,
+      minute: 2,
+      days: [],
+      title: 't',
+      maxRingMs: 1000,
+      nextFireAt: 9,
+      backend: 'alarm_manager',
     });
   });
 });

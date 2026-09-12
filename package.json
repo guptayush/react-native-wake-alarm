@@ -135,6 +135,7 @@
   },
   "jest": {
     "preset": "@react-native/jest-preset",
+    "collectCoverage": true,
     "testEnvironmentOptions": {
       "customExportConditions": [
         "require",

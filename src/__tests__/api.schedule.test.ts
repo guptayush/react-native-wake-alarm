@@ -14,11 +14,11 @@ const okNative = {
 };
 
 describe('schedule', () => {
-  // @ts-ignore jest.Mock typing with mocked module
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   it('validates, forwards the normalised input and maps the result', async () => {
-    // @ts-ignore jest.Mock typing with mocked module
     native.schedule.mockResolvedValue(okNative);
     const res = await api.schedule({
       id: 'a',
@@ -57,7 +57,6 @@ describe('schedule', () => {
   });
 
   it('returns failed/native_error when native rejects', async () => {
-    // @ts-ignore jest.Mock typing with mocked module
     native.schedule.mockRejectedValue(new Error('kaboom'));
     await expect(
       api.schedule({ id: 'a', hour: 1, minute: 1, title: 'T' })
@@ -69,7 +68,6 @@ describe('schedule', () => {
   });
 
   it('returns failed/native_error with a generic message for a non-Error rejection', async () => {
-    // @ts-ignore jest.Mock typing with mocked module
     native.schedule.mockRejectedValue('string reason');
     await expect(
       api.schedule({ id: 'a', hour: 1, minute: 1, title: 'T' })
@@ -82,11 +80,11 @@ describe('schedule', () => {
 });
 
 describe('cancel / cancelAll / getScheduled', () => {
-  // @ts-ignore jest.Mock typing with mocked module
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   it('cancel validates the id and forwards', async () => {
-    // @ts-ignore jest.Mock typing with mocked module
     native.cancel.mockResolvedValue(undefined);
     await api.cancel('abc');
     expect(native.cancel).toHaveBeenCalledWith('abc');
@@ -94,14 +92,12 @@ describe('cancel / cancelAll / getScheduled', () => {
   });
 
   it('cancelAll forwards', async () => {
-    // @ts-ignore jest.Mock typing with mocked module
     native.cancelAll.mockResolvedValue(undefined);
     await api.cancelAll();
     expect(native.cancelAll).toHaveBeenCalledTimes(1);
   });
 
   it('getScheduled maps every row', async () => {
-    // @ts-ignore jest.Mock typing with mocked module
     native.getScheduled.mockResolvedValue([
       {
         id: 'a',

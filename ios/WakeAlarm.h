@@ -1,5 +1,4 @@
 #import <WakeAlarmSpec/WakeAlarmSpec.h>
 
-@interface WakeAlarm : NSObject <NativeWakeAlarmSpec>
-
+@interface WakeAlarm : NativeWakeAlarmSpecBase <NativeWakeAlarmSpec>
 @end

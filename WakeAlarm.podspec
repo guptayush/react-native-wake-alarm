@@ -11,10 +11,17 @@ Pod::Spec.new do |s|
   s.authors      = package["author"]
 
   s.platforms    = { :ios => min_ios_version_supported }
-  s.source       = { :git => "https://github.com/guptayush/react-native-wake-alarm.git", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/guptayush/react-native-wake-alarm.git", :tag => "v#{s.version}" }
 
-  s.source_files = "ios/**/*.{h,m,mm,swift,cpp}"
+  s.source_files = "ios/**/*.{h,m,mm,swift}"
+  s.exclude_files = "ios/Tests/**/*", "ios/Templates/**/*", "ios/Package.swift"
   s.private_header_files = "ios/**/*.h"
+  s.swift_version = "5.9"
+  s.weak_frameworks = "AlarmKit"
+  s.pod_target_xcconfig = {
+    "DEFINES_MODULE" => "YES",
+    "SWIFT_OBJC_INTERFACE_HEADER_NAME" => "WakeAlarm-Swift.h",
+  }
 
   install_modules_dependencies(s)
 end

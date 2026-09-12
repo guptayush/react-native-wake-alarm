@@ -24,7 +24,4 @@ object AlarmMath {
     cal.add(Calendar.DAY_OF_MONTH, delta)
     return cal.timeInMillis
   }
-
-  fun plusOneWeek(fireAtMs: Long, hour: Int, minute: Int, zone: TimeZone = TimeZone.getDefault()): Long =
-    atWallClock(fireAtMs, hour, minute, zone).apply { add(Calendar.WEEK_OF_YEAR, 1) }.timeInMillis
 }

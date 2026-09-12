@@ -35,9 +35,15 @@ class RingService : Service() {
   }
 
   private fun startRing(slot: Slot) {
-    if (RingState.current != null) tearDownSession("api")
+    val previous = RingState.current
     val now = System.currentTimeMillis()
+    // Publish the new session before tearing down the old one: the activity's stopped listener
+    // finishes only while RingState is null, so a superseding alarm keeps the screen up.
     RingState.set(Ringing(slot.alarmId, slot.title, slot.body, slot.payloadJson, now, slot.nextFireAt, slot.maxRingMs, slot.sound))
+    if (previous != null) {
+      stopPlayback()
+      deliverStopped(previous.id, "superseded")
+    }
     RingNotification.ensureChannel(this)
     val notification = RingNotification.build(this, slot, withFullScreen = true)
     try {
@@ -63,7 +69,7 @@ class RingService : Service() {
     startVibration()
     timeout = Runnable { stopRing("timeout") }.also { handler.postDelayed(it, slot.maxRingMs) }
     WakeLocks.release()
-    if (RingEvents.hasListeners()) RingEvents.emitFired(slot.alarmId, now) else PendingActionStore(this).record(slot.alarmId, "fired", now)
+    deliverFired(slot.alarmId, now)
   }
 
   private fun stopRing(source: String) {
@@ -76,14 +82,28 @@ class RingService : Service() {
 
   private fun tearDownSession(source: String) {
     val ringing = RingState.current
+    stopPlayback()
+    RingState.clear()
+    if (ringing != null) deliverStopped(ringing.id, source)
+  }
+
+  private fun stopPlayback() {
     timeout?.let(handler::removeCallbacks); timeout = null
     player?.stop(); player = null
     stopVibration()
-    RingState.clear()
-    if (ringing != null) {
-      val at = System.currentTimeMillis()
-      if (RingEvents.hasListeners()) RingEvents.emitStopped(ringing.id, at, source) else PendingActionStore(this).record(ringing.id, "stopped", at)
-    }
+  }
+
+  // Always park and always emit: JS may not exist yet, or may exist without a listener attached.
+  // A live listener clears the parked copy on delivery; consumePendingAction() picks it up otherwise.
+  private fun deliverFired(id: String, at: Long) {
+    PendingActionStore(this).record(id, "fired", at)
+    RingEvents.emitFired(id, at)
+  }
+
+  private fun deliverStopped(id: String, source: String) {
+    val at = System.currentTimeMillis()
+    PendingActionStore(this).record(id, "stopped", at)
+    RingEvents.emitStopped(id, at, source)
   }
 
   private fun vibrator(): Vibrator? = runCatching {
@@ -118,8 +138,11 @@ class RingService : Service() {
     }
 
     fun stop(context: Context, source: String) {
+      // Nothing ringing means no service to reach; a fresh instance would only be created to stop itself.
+      if (RingState.current == null) return
       val intent = Intent(context, RingService::class.java).setAction(ACTION_STOP).putExtra(EXTRA_SOURCE, source)
-      runCatching { context.startService(intent) }
+      // The service is already in the foreground, and a foreground start is never refused from the background.
+      runCatching { ContextCompat.startForegroundService(context, intent) }
     }
 
     fun postDegraded(context: Context, slot: Slot) {

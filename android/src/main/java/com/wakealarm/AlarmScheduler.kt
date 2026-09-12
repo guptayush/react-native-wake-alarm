@@ -6,7 +6,28 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 
-class AlarmScheduler(private val context: Context, private val store: SlotStore) {
+/** The one OS call that can refuse an alarm, behind an interface so tests can make it refuse. */
+fun interface ExactAlarmArmer {
+  fun arm(triggerAtMs: Long, showIntent: PendingIntent, operation: PendingIntent): Boolean
+}
+
+class AlarmManagerArmer(private val alarmManager: AlarmManager?) : ExactAlarmArmer {
+  override fun arm(triggerAtMs: Long, showIntent: PendingIntent, operation: PendingIntent): Boolean {
+    val am = alarmManager ?: return false
+    return try {
+      am.setAlarmClock(AlarmManager.AlarmClockInfo(triggerAtMs, showIntent), operation)
+      true
+    } catch (_: Throwable) {
+      false
+    }
+  }
+}
+
+class AlarmScheduler(
+  context: Context,
+  private val store: SlotStore,
+  private val armer: ExactAlarmArmer = AlarmManagerArmer(context.applicationContext.getSystemService(Context.ALARM_SERVICE) as? AlarmManager),
+) {
   private val app = context.applicationContext
   private val alarmManager: AlarmManager? get() = app.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
 
@@ -52,13 +73,14 @@ class AlarmScheduler(private val context: Context, private val store: SlotStore)
     }
   }
 
-  /** Called by FireReceiver. Returns the slot to ring, after re-arming a weekly slot for next week or removing a one-off. */
+  /** Called by FireReceiver. Returns the slot to ring, after re-arming a weekly slot for its next weekday or removing a one-off. */
   fun consumeFire(key: SlotKey, nowMs: Long = System.currentTimeMillis()): Slot? {
     val slot = store.get(key) ?: return null
     if (slot.weekday == null) {
       store.remove(key)
     } else {
-      val next = AlarmMath.plusOneWeek(maxOf(slot.nextFireAt, nowMs), slot.hour, slot.minute)
+      // Anchor on the slot's weekday, not on today's: a late delivery must not shift the alarm to a new day.
+      val next = AlarmMath.nextFireAt(maxOf(slot.nextFireAt, nowMs), slot.hour, slot.minute, slot.weekday)
       val updated = slot.copy(nextFireAt = next)
       store.put(updated)
       arm(updated)
@@ -66,15 +88,7 @@ class AlarmScheduler(private val context: Context, private val store: SlotStore)
     return slot
   }
 
-  private fun arm(slot: Slot): Boolean {
-    val am = alarmManager ?: return false
-    return try {
-      am.setAlarmClock(AlarmManager.AlarmClockInfo(slot.nextFireAt, showIntent()), operation(slot.key))
-      true
-    } catch (_: Throwable) {
-      false
-    }
-  }
+  private fun arm(slot: Slot): Boolean = armer.arm(slot.nextFireAt, showIntent(), operation(slot.key))
 
   private fun disarm(key: SlotKey) {
     runCatching { alarmManager?.cancel(operation(key)) }

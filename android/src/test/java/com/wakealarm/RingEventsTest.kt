@@ -2,8 +2,6 @@ package com.wakealarm
 
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RingEventsTest {
@@ -15,9 +13,7 @@ class RingEventsTest {
   @After fun tearDown() { RingEvents.remove(listener) }
 
   @Test fun deliversToRegisteredListenersOnly() {
-    assertFalse(RingEvents.hasListeners())
     RingEvents.add(listener)
-    assertTrue(RingEvents.hasListeners())
     RingEvents.emitFired("a", 1)
     RingEvents.emitStopped("a", 2, "user")
     RingEvents.remove(listener)

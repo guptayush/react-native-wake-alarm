@@ -12,7 +12,7 @@ class WakeAlarmActivity : ReactActivity() {
   private val finishOnStop = object : RingEvents.Listener {
     override fun onFired(id: String, at: Long) {}
     override fun onStopped(id: String, at: Long, source: String) {
-      runOnUiThread { if (!isFinishing && RingState.current == null) finish() }
+      runOnUiThread { if (!isFinishing && shouldFinishOnStopped(RingState.current == null)) finish() }
     }
   }
 
@@ -39,5 +39,10 @@ class WakeAlarmActivity : ReactActivity() {
     if (RingState.current == null) super.invokeDefaultOnBackPressed()
   }
 
-  companion object { const val MAIN_COMPONENT = "WakeAlarmRing" }
+  companion object {
+    const val MAIN_COMPONENT = "WakeAlarmRing"
+
+    /** A stopped event closes the screen only when nothing is ringing any more; a superseding alarm keeps it up. */
+    fun shouldFinishOnStopped(currentIsNull: Boolean): Boolean = currentIsNull
+  }
 }

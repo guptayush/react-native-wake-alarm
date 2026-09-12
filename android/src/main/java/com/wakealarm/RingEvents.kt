@@ -12,7 +12,6 @@ object RingEvents {
 
   fun add(l: Listener) { listeners.add(l) }
   fun remove(l: Listener) { listeners.remove(l) }
-  fun hasListeners(): Boolean = listeners.isNotEmpty()
 
   fun emitFired(id: String, at: Long) = listeners.forEach { runCatching { it.onFired(id, at) } }
   fun emitStopped(id: String, at: Long, source: String) = listeners.forEach { runCatching { it.onStopped(id, at, source) } }

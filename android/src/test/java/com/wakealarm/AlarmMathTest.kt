@@ -43,9 +43,11 @@ class AlarmMathTest {
     val now = at(newYork, 2026, 3, 7, 12, 0) // Saturday
     val sunday = AlarmMath.nextFireAt(now, 6, 30, 7, newYork)
     assertEquals("2026-03-08 06:30 Sun", fmt(newYork, sunday))
-    assertEquals("2026-03-15 06:30 Sun", fmt(newYork, AlarmMath.plusOneWeek(sunday, 6, 30, newYork)))
+    // Re-arming from the fire instant itself lands one week later, on the same weekday.
+    assertEquals("2026-03-15 06:30 Sun", fmt(newYork, AlarmMath.nextFireAt(sunday, 6, 30, 7, newYork)))
     // 23-hour day: the delta is not 7*24h.
-    assertEquals(7L * 24 * 3600 * 1000 - 3600 * 1000, AlarmMath.plusOneWeek(at(newYork, 2026, 3, 1, 6, 30), 6, 30, newYork) - at(newYork, 2026, 3, 1, 6, 30))
+    val previousSunday = at(newYork, 2026, 3, 1, 6, 30)
+    assertEquals(7L * 24 * 3600 * 1000 - 3600 * 1000, AlarmMath.nextFireAt(previousSunday, 6, 30, 7, newYork) - previousSunday)
   }
   @Test fun isoToCalendarDay() {
     assertEquals(Calendar.MONDAY, AlarmMath.isoToCalendarDay(1))

@@ -60,8 +60,6 @@ class AlarmScheduler(private val context: Context, private val store: SlotStore)
     return try {
       am.setAlarmClock(AlarmManager.AlarmClockInfo(slot.nextFireAt, showIntent()), operation(slot.key))
       true
-    } catch (_: SecurityException) {
-      false
     } catch (_: Throwable) {
       false
     }
@@ -77,7 +75,8 @@ class AlarmScheduler(private val context: Context, private val store: SlotStore)
   }
 
   private fun showIntent(): PendingIntent {
-    val launch = app.packageManager.getLaunchIntentForPackage(app.packageName) ?: Intent()
+    val launch = app.packageManager.getLaunchIntentForPackage(app.packageName)
+      ?: Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${app.packageName}"))
     return PendingIntent.getActivity(app, 0, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
   }
 }

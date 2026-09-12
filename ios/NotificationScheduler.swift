@@ -59,7 +59,9 @@ final class NotificationScheduler {
       if #available(iOS 15.0, *) { content.interruptionLevel = .timeSensitive }
 
       let now = Date()
-      let days: [Int?] = record.days.isEmpty ? [nil] : record.days
+      // JavaScript validates days; filtering here keeps a bad record from scheduling a trigger that never fires.
+      let validDays = record.days.filter { (1...7).contains($0) }
+      let days: [Int?] = validDays.isEmpty ? [nil] : validDays.map { Optional($0) }
       var earliest: Date?
       let group = DispatchGroup()
       for day in days {

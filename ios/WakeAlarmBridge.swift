@@ -16,7 +16,11 @@ import Foundation
   private var _handler: (([String: Any]) -> Void)?
 
   /// Installed by the host app (see Templates/WakeAlarmIntents.swift). Returns an AppIntent for the alarm id.
-  public var stopIntentFactory: ((String) -> Any?)?
+  public var stopIntentFactory: ((String) -> Any?)? {
+    get { lock.lock(); defer { lock.unlock() }; return _stopIntentFactory }
+    set { lock.lock(); defer { lock.unlock() }; _stopIntentFactory = newValue }
+  }
+  private var _stopIntentFactory: ((String) -> Any?)?
 
   private override init() {}
 

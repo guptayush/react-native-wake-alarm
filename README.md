@@ -61,7 +61,7 @@ Every platform refusal is a typed result, never a silent failure. [docs/api.md](
 
 | Device | OS | Backgrounded | Killed | Locked | Silent/DND | Reboot |
 | --- | --- | --- | --- | --- | --- | --- |
-| Android emulator (`WakeAlarm_API_26`), example app | API 26 (Android 8.0) | ✓ heads-up, full-screen after tap; `RingService` on the alarm stream, Stop cleaned up, no exception | not yet run (rang from the native service; ring screen re-verified after the import-time registration fix is pending) | ✓ display asleep before the minute: screen woke, `WakeAlarmActivity` took over the lock screen with no tap | not yet run | not yet run |
+| Android emulator (`WakeAlarm_API_26`), example app | API 26 (Android 8.0) | ✓ heads-up, full-screen after tap | ✓ swiped away: heads-up + audio with screen on (ring screen after tap); automatic takeover 73 ms after fire with screen off | ✓ display asleep before the minute: screen woke, `WakeAlarmActivity` took over the lock screen with no tap; `RingService` on the alarm stream, Stop cleaned up, no exception | not yet run | not yet run |
 | Android emulator (`Medium_Phone_API_36.1`), example app | API 36 (Android 16) | ✓ Δ 106 ms; heads-up, full-screen after tap, Stop tore it down | not yet run | ✓ with the full-screen gate granted in Settings: screen woke, takeover with no tap, service ran, no exception | not yet run | not yet run |
 | iOS Simulator, example app | iOS 26.2 (Xcode 26.2) | simulator crashes on alert playback (Apple bug); needs hardware | not yet run | not yet run | simulator crashes on alert playback (Apple bug); needs hardware | not yet run |
 

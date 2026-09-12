@@ -1,6 +1,7 @@
 import Foundation
 #if canImport(AlarmKit)
 import AlarmKit
+import ActivityKit
 import AppIntents
 import SwiftUI
 #endif
@@ -152,12 +153,13 @@ enum AlarmKitScheduler {
   }
 
   @available(iOS 26.0, *)
-  private static func alertSound(named name: String) -> AlertConfiguration.AlertSound {
+  private static func alertSound(named name: String) -> ActivityKit.AlertConfiguration.AlertSound {
     guard !name.isEmpty else { return .default }
     let v = ProcessInfo.processInfo.operatingSystemVersion
     if v.majorVersion == 26 && v.minorVersion == 0 { return .default } // custom sounds are broken on 26.0
     for ext in ["caf", "wav", "aiff"] where Bundle.main.url(forResource: name, withExtension: ext) != nil {
-      return .named(ext == "caf" ? name : "\(name).\(ext)")
+      // The resource name includes its extension; the 26.0 guard above keeps a known-broken release on the default tone.
+      return .named("\(name).\(ext)")
     }
     return .default
   }

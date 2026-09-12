@@ -11,8 +11,12 @@ import Foundation
 
   public func start() {
     WakeAlarmBridge.shared.handler = { [weak self] payload in
-      let action = payload["action"] as? String ?? "stopped"
-      self?.onEvent?(action, payload)
+      guard let id = payload["id"] as? String, let at = payload["at"] as? Int else { return }
+      switch payload["action"] as? String {
+      case "fired": self?.onEvent?("fired", ["id": id, "at": at])
+      case "stopped": self?.onEvent?("stopped", ["id": id, "at": at, "source": "user"])
+      default: break
+      }
     }
     updates = AlarmKitScheduler.observeUpdates(
       knownIds: { [records] in records.all().map(\.id) },
@@ -32,6 +36,23 @@ import Foundation
     ["status": "failed", "backend": "", "reason": reason, "nextFireAt": 0, "message": message]
   }
 
+  private static func gate(fromAlarmKit status: String) -> String {
+    switch status {
+    case "authorized": return "granted"
+    case "denied": return "denied"
+    case "not_determined": return "not_determined"
+    default: return "not_applicable"
+    }
+  }
+
+  private func earliestFireDate(for record: AlarmRecord, now: Date) -> Date {
+    let calendar = Calendar.autoupdatingCurrent
+    guard !record.days.isEmpty else {
+      return AlarmMath.nextFireDate(now: now, hour: record.hour, minute: record.minute, isoWeekday: nil, calendar: calendar)
+    }
+    return record.days.map { AlarmMath.nextFireDate(now: now, hour: record.hour, minute: record.minute, isoWeekday: $0, calendar: calendar) }.min() ?? now
+  }
+
   // MARK: scheduling
 
   public func schedule(_ input: [String: Any], completion: @escaping ([String: Any]) -> Void) {
@@ -43,11 +64,7 @@ import Foundation
         if status == "authorized" {
           if await AlarmKitScheduler.schedule(record, tint: tint) {
             record.backend = "alarm_kit"
-            record.nextFireAt = Int(AlarmMath.nextFireDate(now: Date(), hour: record.hour, minute: record.minute,
-              isoWeekday: record.days.min(by: { a, b in
-                AlarmMath.nextFireDate(now: Date(), hour: record.hour, minute: record.minute, isoWeekday: a, calendar: .autoupdatingCurrent) <
-                AlarmMath.nextFireDate(now: Date(), hour: record.hour, minute: record.minute, isoWeekday: b, calendar: .autoupdatingCurrent) }),
-              calendar: .autoupdatingCurrent).timeIntervalSince1970 * 1000)
+            record.nextFireAt = Int(self.earliestFireDate(for: record, now: Date()).timeIntervalSince1970 * 1000)
             self.notifications.cancel(record.id)
             self.records.put(record)
             completion(["status": "ok", "backend": "alarm_kit", "reason": "", "nextFireAt": record.nextFireAt, "message": ""])
@@ -55,11 +72,11 @@ import Foundation
           }
         }
       }
-      self.scheduleNotificationFallback(record, alarmKitDenied: AlarmKitScheduler.isAvailable, completion: completion)
+      self.scheduleNotificationFallback(record, alarmKitAvailable: AlarmKitScheduler.isAvailable, completion: completion)
     }
   }
 
-  private func scheduleNotificationFallback(_ input: AlarmRecord, alarmKitDenied: Bool, completion: @escaping ([String: Any]) -> Void) {
+  private func scheduleNotificationFallback(_ input: AlarmRecord, alarmKitAvailable: Bool, completion: @escaping ([String: Any]) -> Void) {
     var record = input
     notifications.authorizationStatus { [self] auth in
       let proceed: (String) -> Void = { auth in
@@ -70,7 +87,7 @@ import Foundation
           record.nextFireAt = Int(fire.timeIntervalSince1970 * 1000)
           self.records.put(record)
           if auth == "denied" {
-            if alarmKitDenied { completion(self.failed("alarm_kit_denied", "AlarmKit denied and notifications are off")) }
+            if alarmKitAvailable { completion(self.failed("alarm_kit_denied", "AlarmKit denied and notifications are off")) }
             else { completion(["status": "ok_degraded", "backend": "notification", "reason": "no_notification_permission", "nextFireAt": record.nextFireAt, "message": ""]) }
           } else {
             completion(["status": "ok_degraded", "backend": "notification", "reason": "notification_fallback", "nextFireAt": record.nextFireAt, "message": ""])
@@ -114,7 +131,7 @@ import Foundation
   public func getPermissionStatus(_ completion: @escaping ([String: Any]) -> Void) {
     notifications.authorizationStatus { n in
       completion(["notifications": n, "exactAlarm": "not_applicable", "fullScreenIntent": "not_applicable",
-                  "batteryUnrestricted": "not_applicable", "alarmKit": AlarmKitScheduler.authorizationStatus()])
+                  "batteryUnrestricted": "not_applicable", "alarmKit": Self.gate(fromAlarmKit: AlarmKitScheduler.authorizationStatus())])
     }
   }
 

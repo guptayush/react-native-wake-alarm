@@ -64,6 +64,8 @@ final class NotificationScheduler {
       let days: [Int?] = validDays.isEmpty ? [nil] : validDays.map { Optional($0) }
       var earliest: Date?
       let group = DispatchGroup()
+      let lock = NSLock()
+      var failed = false
       for day in days {
         let fire = AlarmMath.nextFireDate(now: now, hour: record.hour, minute: record.minute, isoWeekday: day, calendar: self.calendar)
         earliest = min(earliest ?? fire, fire)
@@ -74,9 +76,12 @@ final class NotificationScheduler {
           trigger = UNCalendarNotificationTrigger(dateMatching: self.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fire), repeats: false)
         }
         group.enter()
-        self.center.add(UNNotificationRequest(identifier: self.identifier(record.id, day), content: content, trigger: trigger)) { _ in group.leave() }
+        self.center.add(UNNotificationRequest(identifier: self.identifier(record.id, day), content: content, trigger: trigger)) { error in
+          if error != nil { lock.lock(); failed = true; lock.unlock() }
+          group.leave()
+        }
       }
-      group.notify(queue: .main) { completion(earliest) }
+      group.notify(queue: .main) { completion(failed ? nil : earliest) }
     }
   }
 

@@ -10,6 +10,10 @@
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
+    "./jest": {
+      "types": "./jest/index.d.ts",
+      "default": "./jest/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -19,6 +23,7 @@
     "ios",
     "cpp",
     "plugin",
+    "jest",
     "app.plugin.js",
     "*.podspec",
     "react-native.config.js",
@@ -161,6 +166,7 @@
     "collectCoverageFrom": [
       "src/**/*.{ts,tsx}",
       "plugin/lib/**/*.js",
+      "jest/**/*.js",
       "!src/**/__mocks__/**",
       "!src/NativeWakeAlarm.ts"
     ],

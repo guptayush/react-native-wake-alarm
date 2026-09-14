@@ -98,6 +98,19 @@ Other methods: `cancel(id)`, `cancelAll()`, `getScheduled()`, `getPermissionStat
 
 Verified behaviour per platform and case is recorded in [docs/device-testing.md](docs/device-testing.md#6-results-so-far).
 
+## Testing your app
+
+The package resolves its TurboModule on the first call, which throws under Jest. Swap in
+the bundled mock — every `WakeAlarmApi` method is a `jest.fn()` with a sensible resolved
+value, and the named exports (`DefaultRingScreen`, `RING_COMPONENT_NAME`,
+`WakeAlarmInputError`) are stubbed too:
+
+```js
+jest.mock('react-native-wake-alarm', () =>
+  require('react-native-wake-alarm/jest')
+);
+```
+
 ## Docs
 
 [Android](docs/android.md) · [iOS](docs/ios.md) · [Expo](docs/expo.md) · [Permissions & store policy](docs/permissions-and-store-policy.md) · [API](docs/api.md) · [Device testing](docs/device-testing.md) · [Design](docs/design.md)

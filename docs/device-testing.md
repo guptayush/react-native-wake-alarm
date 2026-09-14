@@ -99,3 +99,21 @@ checked in the simulator — only alert playback needs a real device.
 Screen-record every must-pass case above. The Δ line on the ring screen
 (`CustomRingScreen`, or the default ring screen) is the timing evidence — it needs no
 separate log capture to prove a case passed.
+
+## 6. Results so far
+
+Emulator runs on 2026-09-12 with the example app; real-device rows are still open.
+
+| Device | OS | Backgrounded | Killed | Locked | Silent/DND | Reboot |
+| --- | --- | --- | --- | --- | --- | --- |
+| Android emulator (`WakeAlarm_API_26`), example app | API 26 (Android 8.0) | ✓ heads-up, full-screen after tap | ✓ swiped away: heads-up + audio with screen on (ring screen after tap); automatic takeover 73 ms after fire with screen off | ✓ display asleep before the minute: screen woke, `WakeAlarmActivity` took over the lock screen with no tap; `RingService` on the alarm stream, Stop cleaned up, no exception | not yet run | not yet run |
+| Android emulator (`Medium_Phone_API_36.1`), example app | API 36 (Android 16) | ✓ Δ 106 ms; heads-up, full-screen after tap, Stop tore it down | not yet run | ✓ with the full-screen gate granted in Settings: screen woke, takeover with no tap, service ran, no exception | not yet run | not yet run |
+| iOS Simulator, example app | iOS 26.2 (Xcode 26.2) | simulator crashes on alert playback (Apple bug); needs hardware | not yet run | not yet run | simulator crashes on alert playback (Apple bug); needs hardware | not yet run |
+
+Android shows a full-screen intent as a heads-up banner whenever the screen is on and unlocked; the automatic takeover happens only with the screen off or the keyguard showing, which is why the Locked column is the one that proves it.
+
+On the iOS simulator, the AlarmKit authorization prompt, scheduling, Live Activity creation
+and alert posting were all verified; only alert playback crashes the simulator's SpringBoard
+(an Apple bug), so sound and Stop still need a real device.
+
+

@@ -57,21 +57,45 @@ Every platform refusal is a typed result, never a silent failure. [docs/api.md](
 
 [docs/permissions-and-store-policy.md](docs/permissions-and-store-policy.md) explains each gate and the Play Console declarations you must file.
 
-## Tested on
+## Props
 
-| Device | OS | Backgrounded | Killed | Locked | Silent/DND | Reboot |
-| --- | --- | --- | --- | --- | --- | --- |
-| Android emulator (`WakeAlarm_API_26`), example app | API 26 (Android 8.0) | ✓ heads-up, full-screen after tap | ✓ swiped away: heads-up + audio with screen on (ring screen after tap); automatic takeover 73 ms after fire with screen off | ✓ display asleep before the minute: screen woke, `WakeAlarmActivity` took over the lock screen with no tap; `RingService` on the alarm stream, Stop cleaned up, no exception | not yet run | not yet run |
-| Android emulator (`Medium_Phone_API_36.1`), example app | API 36 (Android 16) | ✓ Δ 106 ms; heads-up, full-screen after tap, Stop tore it down | not yet run | ✓ with the full-screen gate granted in Settings: screen woke, takeover with no tap, service ran, no exception | not yet run | not yet run |
-| iOS Simulator, example app | iOS 26.2 (Xcode 26.2) | simulator crashes on alert playback (Apple bug); needs hardware | not yet run | not yet run | simulator crashes on alert playback (Apple bug); needs hardware | not yet run |
+### `schedule(alarm)` — `AlarmInput`
 
-Android shows a full-screen intent as a heads-up banner whenever the screen is on and unlocked; the automatic takeover happens only with the screen off or the keyguard showing, which is why the Locked column is the one that proves it.
+| Prop | Type | Required | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `string` | yes | — | Stable, app-chosen. `/^[A-Za-z0-9_.-]{1,64}$/`. Scheduling an existing id replaces it. |
+| `hour` | `number` | yes | — | 0–23, device local time. |
+| `minute` | `number` | yes | — | 0–59. |
+| `days` | `Weekday[]` | no | one-off | ISO weekdays, `1` = Monday … `7` = Sunday. Omitted or empty fires once. |
+| `title` | `string` | yes | — | Shown on the ring screen and the iOS alert. |
+| `body` | `string` | no | — | Second line on the notification and ring screen. |
+| `sound` | `string` | no | system alarm tone | Bundled resource name without extension: Android `res/raw/<name>.mp3\|wav`, iOS `<name>.caf\|wav\|aiff` in the app bundle. |
+| `payload` | `Record<string, string>` | no | `{}` | String values only; returned on the ringing alarm and in events. |
+| `maxRingMs` | `number` | no | `600000` | Android give-up cap, 1000–3600000 ms. |
 
-On the iOS simulator, the AlarmKit authorization prompt, scheduling, Live Activity creation
-and alert posting were all verified; only alert playback crashes the simulator's SpringBoard
-(an Apple bug), so sound and Stop still need a real device.
+Resolves to a `ScheduleResult`, never rejects for a platform refusal: `ok`, `ok_degraded` with `reason` `no_full_screen_intent` \| `notification_fallback` \| `no_notification_permission`, or `failed` with `reason` `no_exact_alarm_permission` \| `alarm_kit_denied` \| `invalid_input` \| `native_error`.
 
-Real-device results are collected with [`docs/device-testing.md`](docs/device-testing.md).
+### `registerRingScreen(Component)` — `RingScreenProps` (Android)
+
+| Prop | Type | Notes |
+| --- | --- | --- |
+| `alarm.id` / `alarm.title` / `alarm.body` / `alarm.payload` | as scheduled | The ringing alarm. |
+| `alarm.firedAt` / `alarm.scheduledFor` | `number` | Epoch ms; their difference is the delivery delay. |
+| `stop` | `() => Promise<void>` | Stops audio and vibration, closes the ring screen. |
+
+The default screen shows the time, title, body and a Stop button. On iOS the alert is Apple's system UI, with no slot for custom content.
+
+### Events — `addListener(event, cb)`
+
+| Event | Payload |
+| --- | --- |
+| `fired` | `{ id, at }` |
+| `stopped` | `{ id, at, source: 'user' \| 'timeout' \| 'api' \| 'superseded' }` |
+| `permissionChanged` | reserved; not emitted in this version |
+
+Other methods: `cancel(id)`, `cancelAll()`, `getScheduled()`, `getPermissionStatus()`, `requestPermissions()`, `openSettings(kind)`, `getRinging()` (synchronous), `stopRinging()`, `consumePendingAction()`. Full signatures and every result value: [docs/api.md](docs/api.md).
+
+Verified behaviour per platform and case is recorded in [docs/device-testing.md](docs/device-testing.md#6-results-so-far).
 
 ## Docs
 

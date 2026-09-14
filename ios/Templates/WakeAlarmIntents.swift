@@ -14,7 +14,7 @@ import AlarmKit
 struct WakeAlarmStopIntent: LiveActivityIntent {
   static var title: LocalizedStringResource = "Stop Alarm"
   static var isDiscoverable: Bool = false
-  static var openAppWhenRun: Bool = false
+  static var supportedModes: IntentModes { .background }
 
   @Parameter(title: "Alarm ID") var alarmId: String
 

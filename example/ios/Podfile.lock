@@ -1711,7 +1711,7 @@ PODS:
     - React-utils (= 0.86.2)
     - ReactNativeDependencies
   - ReactNativeDependencies (0.86.2)
-  - WakeAlarm (0.1.0):
+  - WakeAlarm (1.0.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2039,7 +2039,7 @@ SPEC CHECKSUMS:
   ReactCodegen: 45ae80b15b195117bf85e13287d23c6f3417fa8e
   ReactCommon: df0928b8d2064de53c42645dcf684c6e7bdea48c
   ReactNativeDependencies: 2bd6854ade79bf1b60586d1ab7813a389df1b6bf
-  WakeAlarm: ba34cafe32ecee44e2adf746892232ebef542975
+  WakeAlarm: dc5241c514b1d8fabefffd3126682580bc37e259
   Yoga: 0b38f02674a32b9a15de1f41f8680ffa06eaf8ef
 
 PODFILE CHECKSUM: 60d1b42aead2c2258164bcb338ae6738c4d3a307

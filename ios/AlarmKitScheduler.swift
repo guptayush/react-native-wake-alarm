@@ -128,8 +128,9 @@ enum AlarmKitScheduler {
     if #available(iOS 26.0, *) {
       return Task {
         var alerting = Set<UUID>()
-        for await alarms in AlarmManager.shared.alarmUpdates {
-          if Task.isCancelled { break }
+        var iterator = AlarmManager.shared.alarmUpdates.makeAsyncIterator()
+        // Checked before each await, so a cancelled task stops at the next opportunity instead of after the next update.
+        while !Task.isCancelled, let alarms = try? await iterator.next() {
           let ids = knownIds()
           let byUuid = Dictionary(uniqueKeysWithValues: ids.map { (WakeAlarmIds.uuid(for: $0), $0) })
           let now = Set(alarms.filter { $0.state == .alerting }.map(\.id))

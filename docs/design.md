@@ -322,9 +322,12 @@ target and one binary serves every supported version.
   more.
 - Upsert: `cancel(id:)` then `schedule(id:configuration:)`, because a second
   schedule with the same id is refused.
-- `getScheduled` reads `AlarmManager.shared.alarms`.
+- `getScheduled` reads `AlarmManager.shared.alarms` and recomputes `nextFireAt`
+  from the wall-clock schedule at read time; AlarmKit reports none.
 - Authorization: `requestAuthorization()` on the main actor. Already-decided
-  states are not re-requested.
+  states are not re-requested. `schedule` prompts only while the app is
+  active (the sheet never shows from the background and the await hangs);
+  otherwise it falls to the notification path. `requestPermissions` prompts.
 - Denied: AlarmKit denied with notifications granted falls back to the
   notification path and reports `ok_degraded / notification_fallback`.
   AlarmKit denied **and** notifications denied is `failed / alarm_kit_denied`:

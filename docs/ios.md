@@ -96,7 +96,14 @@ decides, and `vibrate: false` changes nothing on iOS.
 `requestPermissions()` requests AlarmKit authorization (iOS 26+) and then notification
 authorization, and always resolves the freshly re-read `PermissionStatus` — a denied or
 failed authorization prompt is reflected in the returned gates, never a rejected
-promise.
+promise. `schedule()` prompts for AlarmKit only while the app is active: the system sheet
+never appears for a backgrounded app and the call would hang, so an undecided AlarmKit
+state in the background falls to the notification path (`ok_degraded / notification_fallback`).
+Call `requestPermissions()` from the foreground first.
+
+`getScheduled()` recomputes `nextFireAt` from each record's wall-clock schedule at read
+time — AlarmKit and `UNUserNotificationCenter` report no next-fire instant, and the
+schedule-time value would go stale after a weekly alarm's first fire.
 
 ## Events
 

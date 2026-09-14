@@ -1,6 +1,7 @@
 // Copy this file into your iOS app target (not into a framework or pod) and call
 // WakeAlarmIntentsRegistration.install() from application(_:didFinishLaunchingWithOptions:).
-// App Intents must be compiled into the app target for the system to resolve them.
+// App Intents must be compiled into the app target for the system to resolve them, and the
+// notification delegate must be in place before a cold-start tap is delivered.
 
 import AppIntents
 import Foundation
@@ -13,7 +14,7 @@ import AlarmKit
 struct WakeAlarmStopIntent: LiveActivityIntent {
   static var title: LocalizedStringResource = "Stop Alarm"
   static var isDiscoverable: Bool = false
-  static var openAppWhenRun: Bool = false
+  static var supportedModes: IntentModes { .background }
 
   @Parameter(title: "Alarm ID") var alarmId: String
 
@@ -30,6 +31,7 @@ struct WakeAlarmStopIntent: LiveActivityIntent {
 
 public enum WakeAlarmIntentsRegistration {
   public static func install() {
+    WakeAlarmNotificationProxy.shared.install()
     #if canImport(AlarmKit)
     if #available(iOS 26.0, *) {
       WakeAlarmBridge.shared.stopIntentFactory = { id in WakeAlarmStopIntent(alarmId: id) }

@@ -30,9 +30,11 @@ Cancels every alarm scheduled by this library.
 
 ### `getScheduled(): Promise<ScheduledAlarm[]>`
 
-Reads what the OS itself will actually fire — `AlarmManager`'s stored slots on Android,
-`AlarmManager.shared.alarms` / pending notification requests on iOS — never a JavaScript
-cache. A record that no longer exists on the OS side is dropped, not reported.
+Never a JavaScript cache. iOS lists the library's records still held by
+`AlarmManager.shared.alarms` or pending in `UNUserNotificationCenter`, with `nextFireAt`
+recomputed at read time. Android has no `AlarmManager` listing API, so it reads the
+library's persisted slots — after an exact-alarm revocation the OS has cancelled the
+alarms but they stay listed until the grant returns and `BootReceiver` re-arms them.
 
 ### `getPermissionStatus(): Promise<PermissionStatus>`
 
@@ -134,8 +136,8 @@ type FailureReason =
 resolved value. A native result whose `status`, `reason` or `backend` is outside these
 unions maps to `failed / native_error` with the offending value in `message`.
 `notification_fallback` covers two iOS cases: AlarmKit is unavailable (below iOS 26) or
-not yet decided, **or** AlarmKit is available but the user denied it while notifications
-are still granted.
+not yet decided — `schedule()` prompts for it only while the app is active — **or**
+AlarmKit is available but the user denied it while notifications are still granted.
 
 ### `PermissionStatus` / `Gate`
 

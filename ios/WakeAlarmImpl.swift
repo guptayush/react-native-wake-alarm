@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 @objcMembers public final class WakeAlarmImpl: NSObject {
   /// name is "fired" | "stopped" | "permissionChanged"
@@ -101,7 +102,11 @@ import Foundation
     Task { @MainActor in
       if AlarmKitScheduler.isAvailable {
         var status = AlarmKitScheduler.authorizationStatus()
-        if status == "not_determined" { status = await AlarmKitScheduler.requestAuthorization() }
+        // The system sheet never appears for a backgrounded app and the await then hangs the promise;
+        // schedule() prompts only while active and otherwise falls to the notification path. requestPermissions() prompts.
+        if status == "not_determined" && UIApplication.shared.applicationState == .active {
+          status = await AlarmKitScheduler.requestAuthorization()
+        }
         if status == "authorized" {
           if await AlarmKitScheduler.schedule(record, tint: tint) {
             record.backend = "alarm_kit"
@@ -161,11 +166,17 @@ import Foundation
   public func getScheduled(_ completion: @escaping ([[String: Any]]) -> Void) {
     let all = records.all()
     let kitIds = AlarmKitScheduler.scheduledIds(from: all.filter { $0.backend == "alarm_kit" }.map(\.id))
-    notifications.pendingIds { [records] pending in
+    let now = Date()
+    notifications.pendingIds { [self] pending in
       var live: [[String: Any]] = []
       for r in all {
         let held = r.backend == "alarm_kit" ? kitIds.contains(r.id) : pending.contains(r.id)
-        if held { live.append(r.dictionary) } else { records.remove(r.id) }
+        guard held else { self.records.remove(r.id); continue }
+        var row = r.dictionary
+        // Neither AlarmKit nor UNUserNotificationCenter reports a next-fire instant; the stored one is the
+        // schedule-time value, stale for a weekly alarm after its first fire. Recompute from the wall clock.
+        row["nextFireAt"] = Int(self.earliestFireDate(for: r, now: now).timeIntervalSince1970 * 1000)
+        live.append(row)
       }
       completion(live)
     }

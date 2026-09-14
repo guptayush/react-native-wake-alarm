@@ -23,7 +23,9 @@
   `failed / invalid_input` at schedule time instead of failing at fire time.
 - iOS `schedule()` prompts for AlarmKit only while the app is active. From the
   background the system sheet never appears and the promise used to hang; an undecided
-  state now falls to the notification path. `requestPermissions()` still prompts.
+  state now falls to the notification path and resolves `ok_degraded` (`notification_fallback`,
+  or `no_notification_permission` when notifications are denied too) — `failed /
+  alarm_kit_denied` is reserved for an actual denial. `requestPermissions()` still prompts.
 - iOS `getScheduled()` recomputes `nextFireAt` at read time; the schedule-time value went
   stale after a weekly alarm's first fire.
 - Android `WakeAlarmActivity` swallows predictive back (API 33+) while ringing, matching

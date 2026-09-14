@@ -100,6 +100,7 @@ import UIKit
   public func schedule(_ input: [String: Any], completion: @escaping ([String: Any]) -> Void) {
     guard var record = AlarmRecord(dictionary: input) else { completion(failed("invalid_input", "missing fields")); return }
     Task { @MainActor in
+      var alarmKitDenied = false
       if AlarmKitScheduler.isAvailable {
         var status = AlarmKitScheduler.authorizationStatus()
         // The system sheet never appears for a backgrounded app and the await then hangs the promise;
@@ -107,6 +108,7 @@ import UIKit
         if status == "not_determined" && UIApplication.shared.applicationState == .active {
           status = await AlarmKitScheduler.requestAuthorization()
         }
+        alarmKitDenied = status == "denied"
         if status == "authorized" {
           if await AlarmKitScheduler.schedule(record, tint: tint) {
             record.backend = "alarm_kit"
@@ -118,17 +120,19 @@ import UIKit
           }
         }
       }
-      self.scheduleNotificationFallback(record, alarmKitAvailable: AlarmKitScheduler.isAvailable, completion: completion)
+      self.scheduleNotificationFallback(record, alarmKitDenied: alarmKitDenied, completion: completion)
     }
   }
 
-  private func scheduleNotificationFallback(_ input: AlarmRecord, alarmKitAvailable: Bool, completion: @escaping ([String: Any]) -> Void) {
+  // alarmKitDenied is a real user decision, not device capability: an undecided AlarmKit
+  // (backgrounded, so never prompted) must not be reported as denied.
+  private func scheduleNotificationFallback(_ input: AlarmRecord, alarmKitDenied: Bool, completion: @escaping ([String: Any]) -> Void) {
     var record = input
     notifications.authorizationStatus { [self] auth in
       let proceed: (String) -> Void = { auth in
         // Upsert semantics: whatever this id held before is gone before the outcome is decided.
         AlarmKitScheduler.cancel(record.id)
-        if auth == "denied" && alarmKitAvailable {
+        if auth == "denied" && alarmKitDenied {
           // "failed" means nothing from this call fires and nothing is listed: no request, no record.
           self.notifications.cancel(record.id)
           self.records.remove(record.id)

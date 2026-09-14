@@ -90,7 +90,7 @@ decides, and `vibrate: false` changes nothing on iOS.
 | --- | --- |
 | `ok / alarm_kit` | Scheduled as a real system alarm. |
 | `ok_degraded / notification_fallback` | Scheduled as a notification instead of AlarmKit — either AlarmKit is unavailable (below iOS 26) or not yet decided, **or** AlarmKit is available but the user denied it while notifications are still granted. |
-| `ok_degraded / no_notification_permission` | AlarmKit unavailable and notifications are also denied — the app must find another way to tell the user. |
+| `ok_degraded / no_notification_permission` | AlarmKit unavailable (below iOS 26) or not yet asked (undecided while the app was in the background), and notifications are also denied — the app must find another way to tell the user. |
 | `failed / alarm_kit_denied` | AlarmKit exists on this device but the user denied it, and notifications are also denied. Nothing is scheduled and nothing is persisted; a previous alarm with the same `id` is cancelled (upsert). |
 
 `requestPermissions()` requests AlarmKit authorization (iOS 26+) and then notification
@@ -98,7 +98,9 @@ authorization, and always resolves the freshly re-read `PermissionStatus` — a 
 failed authorization prompt is reflected in the returned gates, never a rejected
 promise. `schedule()` prompts for AlarmKit only while the app is active: the system sheet
 never appears for a backgrounded app and the call would hang, so an undecided AlarmKit
-state in the background falls to the notification path (`ok_degraded / notification_fallback`).
+state in the background falls to the notification path (`ok_degraded / notification_fallback`,
+or `ok_degraded / no_notification_permission` when notifications are denied too — never
+`failed / alarm_kit_denied`, which is reserved for an actual AlarmKit denial).
 Call `requestPermissions()` from the foreground first.
 
 `getScheduled()` recomputes `nextFireAt` from each record's wall-clock schedule at read

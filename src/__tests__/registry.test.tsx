@@ -34,6 +34,9 @@ describe('registry', () => {
       tree = create(<Component />);
     });
     expect(tree.toJSON()).toBeNull();
+    act(() => {
+      tree.unmount();
+    });
     spy.mockRestore();
   });
 
@@ -92,8 +95,35 @@ describe('registry', () => {
     });
     expect(tree.toJSON()).toBeNull();
     act(() => {
+      tree.unmount();
       tree = create(<RingRoot api={api} />);
     });
+    expect(tree.toJSON()).toBeNull();
+    act(() => {
+      tree.unmount();
+    });
+  });
+
+  it('fired and stopped after unmount are no-ops', () => {
+    native.getRingingJson.mockReturnValue(ringing);
+    let tree!: ReturnType<typeof create>;
+    act(() => {
+      tree = create(<RingRoot api={api} />);
+    });
+    const mounted = native.getRingingJson.mock.calls.length;
+    act(() => {
+      emit('onFired', { id: 'b', at: 10 });
+    });
+    // A live root re-reads on every event; that is what must stop once it has unmounted.
+    expect(native.getRingingJson).toHaveBeenCalledTimes(mounted + 1);
+    act(() => {
+      tree.unmount();
+    });
+    act(() => {
+      emit('onFired', { id: 'b', at: 12 });
+      emit('onStopped', { id: 'b', at: 13, source: 'user' });
+    });
+    expect(native.getRingingJson).toHaveBeenCalledTimes(mounted + 1);
     expect(tree.toJSON()).toBeNull();
   });
 
@@ -113,5 +143,8 @@ describe('registry', () => {
       emit('onFired', { id: 'b', at: 10 });
     });
     expect(tree.root.findByType(Text).props.children).toBe('Second');
+    act(() => {
+      tree.unmount();
+    });
   });
 });

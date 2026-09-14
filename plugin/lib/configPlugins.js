@@ -11,4 +11,6 @@ function loadConfigPlugins(load = require) {
   }
 }
 
+// Spread eagerly so consumers destructure withDangerousMod etc. at require time like the
+// upstream package; the loader is also exported so tests can drive the fallback path.
 module.exports = { loadConfigPlugins, ...loadConfigPlugins() };

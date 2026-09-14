@@ -19,6 +19,13 @@ class WakeAlarmActivityTest {
     assertFalse(WakeAlarmActivity.shouldFinishOnStopped(RingState.current == null))
   }
 
+  @Test fun backIsSwallowedWhileRingingAndFinishesOnceStopped() {
+    RingState.set(Ringing("a", "T", "", "{}", 1, 1, 600_000, ""))
+    assertFalse(WakeAlarmActivity.backShouldFinish(RingState.current == null))
+    RingState.clear()
+    assertTrue(WakeAlarmActivity.backShouldFinish(RingState.current == null))
+  }
+
   @Test fun aStoppedEventFinishesOnceNothingIsRinging() {
     RingState.clear()
     assertTrue(WakeAlarmActivity.shouldFinishOnStopped(RingState.current == null))

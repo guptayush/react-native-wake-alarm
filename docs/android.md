@@ -68,8 +68,8 @@ behaviour, not a permission state: `fullScreenIntent: granted` still means heads
 an unlocked, lit screen.
 
 The activity finishes itself as soon as the ring stops, from any source (Stop button,
-`stopRinging()`, or the `maxRingMs` timeout). Hardware Back is swallowed while an alarm
-is ringing.
+`stopRinging()`, or the `maxRingMs` timeout). Back is swallowed while an alarm is ringing —
+the hardware key and, on Android 13+ with predictive back enabled, the gesture.
 
 ## Degraded matrix
 

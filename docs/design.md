@@ -262,8 +262,8 @@ session reports `stopped` with source `superseded`.
 
 The activity is the package's own, so the host `MainActivity` is untouched
 and a normal notification tap can never bypass the lock screen. It finishes
-itself when the ring stops, from any source. Hardware Back is swallowed while
-ringing.
+itself when the ring stops, from any source. Back — the hardware key and the
+API 33+ predictive-back callback — is swallowed while ringing.
 
 ### Degraded matrix
 

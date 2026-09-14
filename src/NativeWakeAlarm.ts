@@ -11,6 +11,7 @@ export type NativeAlarmInput = {
   sound: string;
   payloadJson: string;
   maxRingMs: number;
+  vibrate: boolean;
 };
 
 export type NativeScheduleResult = {
@@ -31,6 +32,7 @@ export type NativeScheduledAlarm = {
   sound: string;
   payloadJson: string;
   maxRingMs: number;
+  vibrate: boolean;
   nextFireAt: number;
   backend: string;
 };

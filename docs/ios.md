@@ -80,6 +80,10 @@ is no countdown presentation and no custom media — that would require a widget
 extension, which is out of scope for this library. The notification fallback shows a
 standard time-sensitive banner with a **Stop** action.
 
+`vibrate` is accepted and echoed back by `getScheduled()` for parity with Android, but
+neither AlarmKit nor the notification fallback exposes vibration control — the system
+decides, and `vibrate: false` changes nothing on iOS.
+
 ## Result mapping
 
 | Result | Meaning |

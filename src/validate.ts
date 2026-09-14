@@ -63,6 +63,10 @@ export function validateAlarmInput(input: AlarmInput): NativeAlarmInput {
       .sort()
       .map((k) => [k, payload[k] as string])
   );
+  const vibrate = input.vibrate ?? true;
+  if (typeof vibrate !== 'boolean') {
+    throw new WakeAlarmInputError('vibrate', 'must be a boolean');
+  }
   return {
     id: input.id,
     hour: input.hour,
@@ -73,5 +77,6 @@ export function validateAlarmInput(input: AlarmInput): NativeAlarmInput {
     sound,
     payloadJson: JSON.stringify(sortedPayload),
     maxRingMs,
+    vibrate,
   };
 }

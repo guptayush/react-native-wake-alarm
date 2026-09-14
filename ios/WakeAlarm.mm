@@ -40,7 +40,7 @@
   NSDictionary *dict = @{
     @"id": input.id_(), @"hour": @((int)input.hour()), @"minute": @((int)input.minute()), @"days": days,
     @"title": input.title(), @"body": input.body(), @"sound": input.sound(),
-    @"payloadJson": input.payloadJson(), @"maxRingMs": @((int)input.maxRingMs()),
+    @"payloadJson": input.payloadJson(), @"maxRingMs": @((int)input.maxRingMs()), @"vibrate": @(input.vibrate()),
   };
   [_impl schedule:dict completion:^(NSDictionary<NSString *, id> *result) { resolve(result); }];
 }

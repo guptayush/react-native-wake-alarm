@@ -93,6 +93,7 @@ interface AlarmInput {
   sound?: string;                 // bundled resource name, no extension
   payload?: Record<string, string>;
   maxRingMs?: number;             // Android give-up cap, default 600000
+  vibrate?: boolean;              // default true; Android only, iOS stores and echoes it
 }
 
 interface ScheduledAlarm extends AlarmInput {
@@ -185,8 +186,9 @@ is keyed `"<id>:<weekday|once>"` and its `PendingIntent` carries that key as
 the intent `data` URI, because `PendingIntent` identity ignores extras.
 
 `SlotStore` keeps slots in `SharedPreferences` (`wake_alarm_slots_v1`) as
-`hour`, `minute`, `weekday`, `title`, `body`, `sound`, `payload`, and a
-`nextFireAt` epoch that is only a cache. Writes use `commit()` on the
+`hour`, `minute`, `weekday`, `title`, `body`, `sound`, `payload`, `vibrate`
+(absent in records written before 1.1, read as `true`), and a `nextFireAt` epoch
+that is only a cache. Writes use `commit()` on the
 schedule and cancel paths so the record is on disk before the alarm is armed.
 
 Next-fire computation uses `java.util.Calendar` in the device zone, never
@@ -216,8 +218,9 @@ and later. In `onStartCommand` it:
    visible when the full-screen intent is not granted, which on Android 14 is
    the entire degraded alarm.
 4. Calls `startForeground`, then `RingPlayer.start(sound)`.
-5. Starts vibration, and schedules a give-up at `maxRingMs` (default
-   10 minutes, configurable per alarm).
+5. Starts vibration with `USAGE_ALARM` attributes unless the slot's `vibrate`
+   is false, and schedules a give-up at `maxRingMs` (default 10 minutes,
+   configurable per alarm).
 6. Returns `START_NOT_STICKY`.
 
 `RingPlayer` wraps `MediaPlayer` with `AudioAttributes(USAGE_ALARM,
@@ -311,6 +314,9 @@ target and one binary serves every supported version.
 - Sound: `.named("<sound>.caf")` if the file is in the main bundle, else
   `.default`. On exactly iOS 26.0, `.default` always, because custom sounds
   are broken on that release.
+- Vibration: not controllable through AlarmKit or `UNNotificationRequest`;
+  `vibrate` is persisted in the record and echoed by `getScheduled`, nothing
+  more.
 - Upsert: `cancel(id:)` then `schedule(id:configuration:)`, because a second
   schedule with the same id is refused.
 - `getScheduled` reads `AlarmManager.shared.alarms`.

@@ -15,6 +15,7 @@ describe('validateAlarmInput', () => {
       sound: '',
       payloadJson: '{}',
       maxRingMs: 600000,
+      vibrate: true,
     });
   });
 
@@ -23,6 +24,11 @@ describe('validateAlarmInput', () => {
     expect(validateAlarmInput({ ...base, sound: 'bell_2' }).sound).toBe(
       'bell_2'
     );
+  });
+
+  it('keeps vibrate false when asked and defaults it to true', () => {
+    expect(validateAlarmInput({ ...base, vibrate: false }).vibrate).toBe(false);
+    expect(validateAlarmInput({ ...base, vibrate: true }).vibrate).toBe(true);
   });
 
   it('sorts and dedupes days', () => {
@@ -60,6 +66,8 @@ describe('validateAlarmInput', () => {
     [{ ...base, sound: 'chime.mp3' }, 'sound'],
     [{ ...base, sound: '1st' }, 'sound'],
     [{ ...base, sound: 7 as never }, 'sound'],
+    [{ ...base, vibrate: 'yes' as never }, 'vibrate'],
+    [{ ...base, vibrate: 1 as never }, 'vibrate'],
   ])('rejects %j on field %s', (input, field) => {
     expect(() => validateAlarmInput(input)).toThrow(WakeAlarmInputError);
     try {

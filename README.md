@@ -72,6 +72,7 @@ Every platform refusal is a typed result, never a silent failure. [docs/api.md](
 | `sound` | `string` | no | system alarm tone | Bundled resource name without extension, `/^[a-z][a-z0-9_]*$/` (the Android resource rule, applied on both platforms): Android `res/raw/<name>.mp3\|wav`, iOS `<name>.caf\|wav\|aiff` in the app bundle. Anything else is `failed / invalid_input`. |
 | `payload` | `Record<string, string>` | no | `{}` | String values only; returned on the ringing alarm and in events. |
 | `maxRingMs` | `number` | no | `600000` | Android give-up cap, 1000–3600000 ms. |
+| `vibrate` | `boolean` | no | `true` | Android: vibrate on the alarm usage while ringing; `false` rings audio only. iOS: stored and returned by `getScheduled()`, but AlarmKit and the notification fallback expose no vibration control. |
 
 Resolves to a `ScheduleResult`, never rejects for a platform refusal: `ok`, `ok_degraded` with `reason` `no_full_screen_intent` \| `notification_fallback` \| `no_notification_permission`, or `failed` with `reason` `no_exact_alarm_permission` \| `alarm_kit_denied` \| `invalid_input` \| `native_error`.
 
@@ -81,7 +82,7 @@ Resolves to a `ScheduleResult`, never rejects for a platform refusal: `ok`, `ok_
 | --- | --- | --- |
 | `alarm.id` / `alarm.title` / `alarm.body` / `alarm.payload` | as scheduled | The ringing alarm. |
 | `alarm.firedAt` / `alarm.scheduledFor` | `number` | Epoch ms; their difference is the delivery delay. |
-| `stop` | `() => Promise<void>` | Stops audio and vibration, closes the ring screen. |
+| `stop` | `() => Promise<void>` | Stops audio and any vibration, closes the ring screen. |
 
 The default screen shows the time, title, body and a Stop button. On iOS the alert is Apple's system UI, with no slot for custom content.
 

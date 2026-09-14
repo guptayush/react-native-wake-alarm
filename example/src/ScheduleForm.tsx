@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Button,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import WakeAlarm, {
   type ScheduleResult,
   type ScheduledAlarm,
@@ -9,6 +16,7 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
   const [minutes, setMinutes] = useState('1');
   const [scheduled, setScheduled] = useState<ScheduledAlarm[]>([]);
   const [last, setLast] = useState<ScheduleResult | null>(null);
+  const [vibrate, setVibrate] = useState(true);
 
   const refresh = () => WakeAlarm.getScheduled().then(setScheduled);
 
@@ -22,6 +30,7 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
       body: `Scheduled for ${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`,
       sound: 'chime',
       payload: { source: 'example' },
+      vibrate,
     });
     setLast(res);
     onLog(`schedule -> ${JSON.stringify(res)}`);
@@ -36,6 +45,7 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
       days: [1, 2, 3, 4, 5],
       title: 'Weekday 06:30',
       sound: 'chime',
+      vibrate,
     });
     setLast(res);
     onLog(`schedule weekly -> ${JSON.stringify(res)}`);
@@ -58,6 +68,10 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
         <Button title="Weekday 06:30" onPress={weekly} />
       </View>
       <View style={styles.row}>
+        <Text>Vibrate</Text>
+        <Switch value={vibrate} onValueChange={setVibrate} />
+      </View>
+      <View style={styles.row}>
         <Button title="List" onPress={refresh} />
         <Button
           title="Cancel demo"
@@ -72,12 +86,9 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
       {scheduled.map((a) => (
         <Text key={a.id} style={styles.mono}>{`${a.id} ${a.hour}:${String(
           a.minute
-        ).padStart(
-          2,
-          '0'
-        )} days=${a.days?.join(',') || 'once'} ${a.backend} next=${new Date(
-          a.nextFireAt
-        ).toLocaleString()}`}</Text>
+        ).padStart(2, '0')} days=${a.days?.join(',') || 'once'} ${a.backend}${
+          a.vibrate === false ? ' silent' : ''
+        } next=${new Date(a.nextFireAt).toLocaleString()}`}</Text>
       ))}
     </View>
   );

@@ -14,6 +14,11 @@ class SlotTest {
   @Test fun keyDerivesFromIdAndWeekday() {
     assertEquals(SlotKey("morning", 3), slot.key)
   }
+  @Test fun vibrateRoundTripsAndDefaultsToTrueForRecordsWithoutTheKey() {
+    assertEquals(false, Slot.fromJson(slot.copy(vibrate = false).toJson())!!.vibrate)
+    val legacy = org.json.JSONObject(slot.toJson()).apply { remove("vibrate") }.toString()
+    assertEquals(true, Slot.fromJson(legacy)!!.vibrate)
+  }
   @Test fun fromJsonRejectsGarbage() {
     assertNull(Slot.fromJson("not json"))
     assertNull(Slot.fromJson("{\"id\":\"x\"}"))

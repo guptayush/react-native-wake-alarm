@@ -97,6 +97,7 @@ interface AlarmInput {
   sound?: string; // bundled resource name, no extension, /^[a-z][a-z0-9_]*$/
   payload?: Record<string, string>; // string values only
   maxRingMs?: number; // integer 1000–3600000, default 600000 (Android give-up cap)
+  vibrate?: boolean; // default true; Android only — iOS stores and returns it, nothing more
 }
 ```
 
@@ -105,6 +106,9 @@ fails; `schedule()` catches it and resolves `invalid_input` instead of letting i
 propagate. `days` is de-duplicated and sorted; a non-string `payload` value, an
 out-of-range `days` entry or a `sound` outside the Android resource rule (uppercase, a
 hyphen, an extension) is rejected, not coerced — a bad name fails here, not at fire time.
+A non-boolean `vibrate` is rejected the same way. On Android `vibrate: false` rings audio
+only; AlarmKit and the iOS notification fallback have no vibration switch, so on iOS the
+flag is persisted, echoed by `getScheduled()` and otherwise ignored.
 
 ### `ScheduleResult`
 
@@ -150,13 +154,7 @@ interface PermissionStatus {
 ### `SettingsKind`
 
 ```ts
-type SettingsKind =
-  | 'notifications'
-  | 'exactAlarm'
-  | 'fullScreenIntent'
-  | 'battery'
-  | 'autostart'
-  | 'alarmKit';
+type SettingsKind = 'notifications' | 'exactAlarm' | 'fullScreenIntent' | 'battery' | 'autostart' | 'alarmKit';
 ```
 
 `exactAlarm`, `fullScreenIntent`, `battery` and `autostart` are Android-only;
@@ -166,11 +164,7 @@ type SettingsKind =
 
 ```ts
 interface FiredEvent { id: string; at: number }
-interface StoppedEvent {
-  id: string;
-  at: number;
-  source: 'user' | 'timeout' | 'api' | 'superseded';
-}
+interface StoppedEvent { id: string; at: number; source: 'user' | 'timeout' | 'api' | 'superseded' }
 interface PermissionChangedEvent { gate: keyof PermissionStatus; value: Gate }
 ```
 
@@ -183,12 +177,8 @@ as `api`. `permissionChanged` is not emitted by either platform in this version.
 
 ```ts
 interface RingingAlarm {
-  id: string;
-  title: string;
-  body?: string;
-  payload?: Record<string, string>;
-  firedAt: number;
-  scheduledFor: number;
+  id: string; title: string; body?: string; payload?: Record<string, string>;
+  firedAt: number; scheduledFor: number;
 }
 interface PendingAction { id: string; action: 'stopped' | 'fired'; at: number }
 interface RingScreenProps { alarm: RingingAlarm; stop: () => Promise<void> }

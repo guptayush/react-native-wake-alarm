@@ -138,6 +138,7 @@ describe('mapScheduledAlarm', () => {
         sound: '',
         payloadJson: '{}',
         maxRingMs: 1000,
+        vibrate: true,
         nextFireAt: 9,
         backend: 'bogus',
       }).backend
@@ -155,6 +156,7 @@ describe('mapScheduledAlarm', () => {
         sound: '',
         payloadJson: '{"k":"v"}',
         maxRingMs: 1000,
+        vibrate: true,
         nextFireAt: 9,
         backend: 'alarm_kit',
       })
@@ -166,6 +168,7 @@ describe('mapScheduledAlarm', () => {
       title: 't',
       payload: { k: 'v' },
       maxRingMs: 1000,
+      vibrate: true,
       nextFireAt: 9,
       backend: 'alarm_kit',
     });
@@ -182,6 +185,7 @@ describe('mapScheduledAlarm', () => {
         sound: 's',
         payloadJson: 'not json',
         maxRingMs: 1000,
+        vibrate: true,
         nextFireAt: 9,
         backend: 'notification',
       })
@@ -194,6 +198,7 @@ describe('mapScheduledAlarm', () => {
       body: 'b',
       sound: 's',
       maxRingMs: 1000,
+      vibrate: true,
       nextFireAt: 9,
       backend: 'notification',
     });
@@ -210,6 +215,7 @@ describe('mapScheduledAlarm', () => {
         sound: '',
         payloadJson: 'null',
         maxRingMs: 1000,
+        vibrate: true,
         nextFireAt: 9,
         backend: 'alarm_manager',
       })
@@ -220,6 +226,7 @@ describe('mapScheduledAlarm', () => {
       days: [],
       title: 't',
       maxRingMs: 1000,
+      vibrate: true,
       nextFireAt: 9,
       backend: 'alarm_manager',
     });
@@ -234,6 +241,7 @@ describe('mapScheduledAlarm', () => {
         sound: '',
         payloadJson: '"x"',
         maxRingMs: 1000,
+        vibrate: true,
         nextFireAt: 9,
         backend: 'alarm_manager',
       })
@@ -244,6 +252,7 @@ describe('mapScheduledAlarm', () => {
       days: [],
       title: 't',
       maxRingMs: 1000,
+      vibrate: true,
       nextFireAt: 9,
       backend: 'alarm_manager',
     });
@@ -258,6 +267,7 @@ describe('mapScheduledAlarm', () => {
         sound: '',
         payloadJson: '1',
         maxRingMs: 1000,
+        vibrate: true,
         nextFireAt: 9,
         backend: 'alarm_manager',
       })
@@ -268,6 +278,7 @@ describe('mapScheduledAlarm', () => {
       days: [],
       title: 't',
       maxRingMs: 1000,
+      vibrate: true,
       nextFireAt: 9,
       backend: 'alarm_manager',
     });
@@ -282,6 +293,7 @@ describe('mapScheduledAlarm', () => {
         sound: '',
         payloadJson: '[1,2]',
         maxRingMs: 1000,
+        vibrate: true,
         nextFireAt: 9,
         backend: 'alarm_manager',
       })
@@ -292,6 +304,7 @@ describe('mapScheduledAlarm', () => {
       days: [],
       title: 't',
       maxRingMs: 1000,
+      vibrate: true,
       nextFireAt: 9,
       backend: 'alarm_manager',
     });
@@ -306,6 +319,7 @@ describe('mapScheduledAlarm', () => {
         sound: '',
         payloadJson: '{}',
         maxRingMs: 1000,
+        vibrate: true,
         nextFireAt: 9,
         backend: 'alarm_manager',
       })
@@ -316,6 +330,7 @@ describe('mapScheduledAlarm', () => {
       days: [],
       title: 't',
       maxRingMs: 1000,
+      vibrate: true,
       nextFireAt: 9,
       backend: 'alarm_manager',
     });

@@ -105,6 +105,7 @@ export function mapScheduledAlarm(n: NativeScheduledAlarm): ScheduledAlarm {
     days: n.days as Weekday[],
     title: n.title,
     maxRingMs: n.maxRingMs,
+    vibrate: n.vibrate,
     nextFireAt: n.nextFireAt,
     backend: asBackend(n.backend),
   };

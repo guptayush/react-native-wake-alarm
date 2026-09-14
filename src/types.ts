@@ -12,6 +12,7 @@ export interface AlarmInput {
   sound?: string;
   payload?: Record<string, string>;
   maxRingMs?: number;
+  vibrate?: boolean;
 }
 
 export type Backend = 'alarm_manager' | 'alarm_kit' | 'notification';

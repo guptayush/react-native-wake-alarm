@@ -38,6 +38,7 @@ describe('schedule', () => {
       sound: '',
       payloadJson: '{}',
       maxRingMs: 600000,
+      vibrate: true,
     });
     expect(res).toEqual({
       status: 'ok',
@@ -111,6 +112,7 @@ describe('cancel / cancelAll / getScheduled', () => {
         sound: '',
         payloadJson: '{}',
         maxRingMs: 600000,
+        vibrate: false,
         nextFireAt: 9,
         backend: 'alarm_kit',
       },
@@ -123,6 +125,7 @@ describe('cancel / cancelAll / getScheduled', () => {
         days: [],
         title: 't',
         maxRingMs: 600000,
+        vibrate: false,
         nextFireAt: 9,
         backend: 'alarm_kit',
       },

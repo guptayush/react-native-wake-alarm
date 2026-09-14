@@ -7,7 +7,10 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
+import android.media.AudioAttributes
+import android.os.CombinedVibration
 import android.os.Looper
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -66,7 +69,7 @@ class RingService : Service() {
       return
     }
     player = RingPlayer(this).also { it.start(slot.sound) }
-    startVibration()
+    if (slot.vibrate) startVibration()
     timeout = Runnable { stopRing("timeout") }.also { handler.postDelayed(it, slot.maxRingMs) }
     WakeLocks.release()
     deliverFired(slot.alarmId, now)
@@ -106,18 +109,31 @@ class RingService : Service() {
     RingEvents.emitStopped(id, at, source)
   }
 
+  private fun vibratorManager(): VibratorManager? =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) runCatching { getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager }.getOrNull() else null
+
   private fun vibrator(): Vibrator? = runCatching {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) vibratorManager()?.defaultVibrator
     else @Suppress("DEPRECATION") getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
   }.getOrNull()
 
+  // USAGE_ALARM attributes: an attribute-less vibration is one some OEMs mute under Do Not Disturb.
   private fun startVibration() = runCatching {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      vibrator()?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 700, 400), 1))
+    val effect = VibrationEffect.createWaveform(longArrayOf(0, 700, 400), 1)
+    val manager = vibratorManager()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && manager != null) {
+      manager.vibrate(CombinedVibration.createParallel(effect), VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM))
+    } else {
+      // Deprecated in 33, but the only attributed overload available from 26 to 32.
+      @Suppress("DEPRECATION")
+      vibrator()?.vibrate(effect, AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
     }
   }
 
-  private fun stopVibration() = runCatching { vibrator()?.cancel() }
+  private fun stopVibration() = runCatching {
+    val manager = vibratorManager()
+    if (manager != null) manager.cancel() else vibrator()?.cancel()
+  }
 
   override fun onDestroy() {
     tearDownSession("api")

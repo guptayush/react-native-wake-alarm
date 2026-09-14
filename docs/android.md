@@ -39,12 +39,18 @@ merging. There is nothing to add or edit in your app's manifest.
 `USE_EXACT_ALARM` is **not** declared. Play restricts it to alarm and calendar apps; add
 it yourself in your app's manifest if your app qualifies.
 
-## Sounds
+## Sounds and vibration
 
 Put a sound file at `android/app/src/main/res/raw/<name>.mp3` (or `.wav`) in your app,
 lowercase resource name, and pass that name as `sound` in `schedule()`. If the name
 can't be resolved as a raw resource, `RingService` falls back to the system default
 alarm ringtone; if `MediaPlayer` errors mid-ring it retries once on the default tone.
+
+Vibration runs alongside the audio with alarm attributes — `VibrationAttributes.USAGE_ALARM`
+through `VibratorManager` on Android 13+, `AudioAttributes(USAGE_ALARM)` on 8–12 — so an OEM
+Do Not Disturb filter treats it like the sound rather than like a notification buzz.
+`vibrate: false` skips it and rings audio only. Slots stored before 1.1 carry no flag and
+keep vibrating.
 
 ## The ring screen
 

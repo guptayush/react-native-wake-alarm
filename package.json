@@ -182,7 +182,8 @@
   "release-it": {
     "git": {
       "commitMessage": "chore: release ${version}",
-      "tagName": "v${version}"
+      "tagName": "v${version}",
+      "tagAnnotation": "Release ${version}\n\n${changelog}"
     },
     "npm": {
       "publish": false

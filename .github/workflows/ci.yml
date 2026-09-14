@@ -157,7 +157,7 @@ jobs:
           xcode-version: ${{ env.XCODE_VERSION }}
 
       - name: Install cocoapods
-        if: env.turbo_cache_hit != 1 && steps.cocoapods-cache.outputs.cache-hit != 'true'
+        if: env.turbo_cache_hit != 1
         run: |
           cd example
           bundle install
@@ -170,13 +170,15 @@ jobs:
 
   swift-test:
     runs-on: macos-latest
+    env:
+      XCODE_VERSION: 26
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Use appropriate Xcode version
         uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
         with:
-          xcode-version: 26
+          xcode-version: ${{ env.XCODE_VERSION }}
       - name: Swift core tests
         working-directory: ios
         run: swift test

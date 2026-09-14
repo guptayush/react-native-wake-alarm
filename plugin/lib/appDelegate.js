@@ -9,6 +9,8 @@ const regionRe = (part) =>
     'g'
   );
 const ANCHOR = /didFinishLaunchingWithOptions[^{]*\{\s*\n/;
+// Line-anchored so a comment or string containing "import " is never taken for the import block.
+const FIRST_IMPORT = /^import\s/m;
 
 const IMPORT = `${begin('import')}\nimport WakeAlarm\n${end('import')}\n`;
 const CALL = `    ${begin('call')}\n    WakeAlarmIntentsRegistration.install()\n    ${end('call')}\n`;
@@ -29,8 +31,12 @@ function injectAppDelegate(contents) {
     );
   const insertAt = match.index + match[0].length;
   out = out.slice(0, insertAt) + CALL + out.slice(insertAt);
-  const firstImport = out.indexOf('import ');
-  out = out.slice(0, firstImport) + IMPORT + out.slice(firstImport);
+  const firstImport = FIRST_IMPORT.exec(out);
+  if (!firstImport)
+    throw new Error(
+      'react-native-wake-alarm: could not find an import line in AppDelegate.swift'
+    );
+  out = out.slice(0, firstImport.index) + IMPORT + out.slice(firstImport.index);
   return out;
 }
 

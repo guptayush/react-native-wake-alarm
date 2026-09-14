@@ -23,7 +23,7 @@ Both props are optional.
   project; Android files (`.mp3`, `.wav`, `.ogg`) are copied into
   `android/app/src/main/res/raw`. Android resource names must match
   `^[a-z][a-z0-9_]*$` — the build fails with the offending file names listed if one
-  doesn't.
+  doesn't, and a folder that does not exist fails prebuild naming the resolved path.
 
 ## What each mod does
 
@@ -41,7 +41,12 @@ Both props are optional.
 
 Expo SDK 53 or newer, because the AppDelegate injection only understands a **Swift**
 `AppDelegate.swift` (the default since SDK 53). A project still on the Objective-C
-template fails prebuild with an explicit error naming this requirement.
+template fails prebuild with an explicit error naming this requirement, as does an
+`AppDelegate.swift` with no `import` line to anchor the injected import on.
+
+The plugin resolves config-plugins through `expo/config-plugins` first, so it shares the
+copy your app already has, and falls back to `@expo/config-plugins` only when `expo` is
+not installed.
 
 ## Prebuild
 

@@ -40,6 +40,22 @@ describe('injectAppDelegate', () => {
       out.match(/WakeAlarmIntentsRegistration\.install\(\)/g)
     ).toHaveLength(1);
   });
+  it('anchors the import block on a real import line, not a comment mentioning import', () => {
+    const commented = `// import nothing here\n${template}`;
+    const out = injectAppDelegate(commented);
+    expect(out.indexOf('// import nothing here')).toBeLessThan(
+      out.indexOf('import WakeAlarm')
+    );
+    expect(out.indexOf('import WakeAlarm')).toBeLessThan(
+      out.indexOf('import Expo')
+    );
+  });
+  it('throws a clear error when there is no import line to anchor on', () => {
+    const noImports = template.replace('import Expo\nimport React\n', '');
+    expect(() => injectAppDelegate(noImports)).toThrow(
+      'react-native-wake-alarm: could not find an import line'
+    );
+  });
   it('throws a clear error when the anchor is missing', () => {
     expect(() => injectAppDelegate('class Nope {}')).toThrow(
       'react-native-wake-alarm: could not find didFinishLaunchingWithOptions'

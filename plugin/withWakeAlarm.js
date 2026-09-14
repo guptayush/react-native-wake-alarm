@@ -1,4 +1,4 @@
-const { createRunOncePlugin } = require('@expo/config-plugins');
+const { createRunOncePlugin } = require('./lib/configPlugins');
 const pkg = require('../package.json');
 const withIosAlarmKit = require('./withIosAlarmKit');
 const withIosStopIntent = require('./withIosStopIntent');

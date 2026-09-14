@@ -1,7 +1,4 @@
-const {
-  withEntitlementsPlist,
-  withInfoPlist,
-} = require('@expo/config-plugins');
+const { withEntitlementsPlist, withInfoPlist } = require('./lib/configPlugins');
 const { alarmKitInfoPlist, timeSensitiveEntitlements } = require('./lib/plist');
 
 module.exports = (config, props) => {

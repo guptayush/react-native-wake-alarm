@@ -4,7 +4,8 @@ const {
   IOSConfig,
   withDangerousMod,
   withXcodeProject,
-} = require('@expo/config-plugins');
+} = require('./lib/configPlugins');
+const { getProjectName, resolveSoundsDir } = require('./lib/project');
 const { classifySounds } = require('./lib/sounds');
 
 module.exports = (config, props) => {
@@ -13,7 +14,7 @@ module.exports = (config, props) => {
   config = withDangerousMod(config, [
     'android',
     (c) => {
-      const src = path.join(c.modRequest.projectRoot, props.sounds);
+      const src = resolveSoundsDir(c.modRequest, props.sounds);
       const raw = path.join(
         c.modRequest.platformProjectRoot,
         'app',
@@ -36,10 +37,8 @@ module.exports = (config, props) => {
   ]);
 
   return withXcodeProject(config, (c) => {
-    const src = path.join(c.modRequest.projectRoot, props.sounds);
-    const projectName = IOSConfig.XcodeUtils.getProjectName(
-      c.modRequest.projectRoot
-    );
+    const src = resolveSoundsDir(c.modRequest, props.sounds);
+    const projectName = getProjectName(c.modRequest);
     const { ios } = classifySounds(fs.readdirSync(src));
     for (const f of ios) {
       fs.copyFileSync(

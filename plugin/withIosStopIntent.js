@@ -4,8 +4,9 @@ const {
   IOSConfig,
   withAppDelegate,
   withXcodeProject,
-} = require('@expo/config-plugins');
+} = require('./lib/configPlugins');
 const { injectAppDelegate } = require('./lib/appDelegate');
+const { getProjectName } = require('./lib/project');
 
 const TEMPLATE = path.join(
   __dirname,
@@ -18,9 +19,7 @@ const FILE = 'WakeAlarmIntents.swift';
 
 module.exports = (config) => {
   config = withXcodeProject(config, (c) => {
-    const projectName = IOSConfig.XcodeUtils.getProjectName(
-      c.modRequest.projectRoot
-    );
+    const projectName = getProjectName(c.modRequest);
     const dest = path.join(c.modRequest.platformProjectRoot, projectName, FILE);
     fs.copyFileSync(TEMPLATE, dest);
     if (!c.modResults.hasFile(`${projectName}/${FILE}`)) {

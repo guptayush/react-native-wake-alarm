@@ -12,6 +12,18 @@ class RingEventsTest {
   }
   @After fun tearDown() { RingEvents.remove(listener) }
 
+  @Test fun permissionChangedReachesAnOverridingListenerAndIsANoOpForTheDefault() {
+    val overriding = object : RingEvents.Listener {
+      override fun onFired(id: String, at: Long) {}
+      override fun onStopped(id: String, at: Long, source: String) {}
+      override fun onPermissionChanged(gate: String, value: String) { seen += "perm:$gate:$value" }
+    }
+    RingEvents.add(listener); RingEvents.add(overriding)
+    RingEvents.emitPermissionChanged("exactAlarm", "granted")
+    RingEvents.remove(overriding)
+    assertEquals(listOf("perm:exactAlarm:granted"), seen)
+  }
+
   @Test fun deliversToRegisteredListenersOnly() {
     RingEvents.add(listener)
     RingEvents.emitFired("a", 1)

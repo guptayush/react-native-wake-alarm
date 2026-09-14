@@ -29,6 +29,9 @@ class WakeAlarmModule(reactContext: ReactApplicationContext) : NativeWakeAlarmSp
   override fun onStopped(id: String, at: Long, source: String) {
     emitOnStopped(Arguments.createMap().apply { putString("id", id); putDouble("at", at.toDouble()); putString("source", source) })
   }
+  override fun onPermissionChanged(gate: String, value: String) {
+    emitOnPermissionChanged(Arguments.createMap().apply { putString("gate", gate); putString("value", value) })
+  }
 
   // ---- scheduling
   override fun schedule(input: ReadableMap, promise: Promise) {

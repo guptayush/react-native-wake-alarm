@@ -112,7 +112,8 @@ wins, so `fired` followed by `stopped` with JS absent yields `stopped`.
 ## Reboot and time changes
 
 `BootReceiver` handles `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`, `TIMEZONE_CHANGED`,
-`TIME_SET`, and the exact-alarm permission state changing. On any of these it re-arms
+`TIME_SET`, and the exact-alarm permission state changing (which also emits
+`permissionChanged { gate: 'exactAlarm' }`). On any of these it re-arms
 every stored slot from its wall-clock `hour`/`minute`/`weekday`, rolling weekly slots
 forward and dropping one-offs that are already past due. Re-arming is idempotent, so a
 receiver firing twice for the same event does not double-schedule.
@@ -129,9 +130,9 @@ change.
 - **OEM autostart** cannot be queried — there is no Android API for it. `openSettings('autostart')`
   opens a best-effort table of vendor screens (Xiaomi, Oppo, Realme, OnePlus, Vivo,
   Samsung, Huawei, Asus), falling back to the app's details screen.
-- `permissionChanged` is not emitted by either platform in this version and is reserved
-  for future use; poll `getPermissionStatus()` instead (for example after returning from
-  `openSettings`).
+- `permissionChanged` covers `exactAlarm` only: `BootReceiver` emits it after re-arming on
+  the exact-alarm permission broadcast. Every other gate has no system broadcast, so poll
+  `getPermissionStatus()` (for example after returning from `openSettings`).
 
 ## Performance notes
 

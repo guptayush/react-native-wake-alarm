@@ -167,6 +167,9 @@ Rules:
   cached record for title, body and payload. No AlarmKit query per call.
 - Payload values are strings only, so they survive `PendingIntent` extras
   and AlarmKit metadata without serialisation surprises.
+- `permissionChanged` is emitted on Android for `exactAlarm` only, from
+  `BootReceiver` after it re-arms on the permission-state broadcast. It is
+  informational: nothing is parked for it. iOS has no equivalent signal.
 - `autostart` is a `SettingsKind` but not a `PermissionStatus` field because
   no Android API reports whether an OEM autostart grant exists. The app can
   only offer the Settings link; the guide recommends showing it once.

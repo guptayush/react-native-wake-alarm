@@ -171,7 +171,10 @@ interface PermissionChangedEvent { gate: keyof PermissionStatus; value: Gate }
 `source` is `user` for the Stop button, notification action or system alert; `timeout`
 for the Android `maxRingMs` cap; `api` for `stopRinging()`; `superseded` when another
 alarm fired while this one was ringing (Android). An unknown native source is reported
-as `api`. `permissionChanged` is not emitted by either platform in this version.
+as `api`. `permissionChanged` fires on Android for `gate: 'exactAlarm'` only, from the
+system's `SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` broadcast after the library has
+re-armed its slots; it is informational and never parked for `consumePendingAction()`.
+iOS emits nothing yet — poll `getPermissionStatus()` for every other gate.
 
 ### `RingingAlarm` / `PendingAction` / `RingScreenProps` / `ScheduledAlarm`
 

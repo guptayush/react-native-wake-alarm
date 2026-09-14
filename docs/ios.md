@@ -140,9 +140,8 @@ only alert playback needs a real device. See
 
 - `openSettings` only handles `'notifications'` and `'alarmKit'` on iOS; the other kinds
   are Android-only and resolve without doing anything.
-- `permissionChanged` is not emitted on iOS either — see
-  [docs/android.md](android.md#known-limitations); it is reserved for a future version
-  on both platforms.
+- `permissionChanged` is not emitted on iOS; Android emits it for `exactAlarm` only (see
+  [docs/android.md](android.md#known-limitations)). Poll `getPermissionStatus()`.
 - No critical alerts. They require an Apple-granted entitlement most apps will not get,
   so this library does not use them — the AlarmKit and time-sensitive paths above are
   the ceiling on iOS.

@@ -92,7 +92,7 @@ The default screen shows the time, title, body and a Stop button. On iOS the ale
 | --- | --- |
 | `fired` | `{ id, at }` |
 | `stopped` | `{ id, at, source: 'user' \| 'timeout' \| 'api' \| 'superseded' }` |
-| `permissionChanged` | reserved; not emitted in this version |
+| `permissionChanged` | `{ gate, value }` — Android only, `gate: 'exactAlarm'` when the exact-alarm grant changes; reserved on iOS |
 
 Other methods: `cancel(id)`, `cancelAll()`, `getScheduled()`, `getPermissionStatus()`, `requestPermissions()`, `openSettings(kind)`, `getRinging()` (synchronous), `stopRinging()`, `consumePendingAction()`. Full signatures and every result value: [docs/api.md](docs/api.md).
 

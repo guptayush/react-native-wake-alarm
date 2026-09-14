@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.1.0
+
+### Added
+
+- `AlarmInput.vibrate` (default `true`). Android vibrates on the alarm usage —
+  `VibrationAttributes.USAGE_ALARM` on 13+, the `AudioAttributes(USAGE_ALARM)` overload
+  on 8–12 — so OEM Do Not Disturb filters treat it like the sound; `false` rings audio
+  only. Slots stored by 1.0 keep vibrating. iOS stores and echoes the flag through
+  `getScheduled()`; AlarmKit and the notification fallback expose no vibration control.
+- `permissionChanged` is emitted on Android for `gate: 'exactAlarm'` after `BootReceiver`
+  re-arms on the exact-alarm permission broadcast. Informational, never parked. iOS still
+  emits nothing.
+- `react-native-wake-alarm/jest`: a consumer mock with every `WakeAlarmApi` method as a
+  `jest.fn()` and stubs for the named exports.
+- `ID_PATTERN` and `SOUND_PATTERN` are exported from `src/validate.ts`.
+
+### Changed
+
+- `sound` is validated in JavaScript against the Android resource rule
+  `/^[a-z][a-z0-9_]*$/` on both platforms; anything else resolves
+  `failed / invalid_input` at schedule time instead of failing at fire time.
+- iOS `schedule()` prompts for AlarmKit only while the app is active. From the
+  background the system sheet never appears and the promise used to hang; an undecided
+  state now falls to the notification path. `requestPermissions()` still prompts.
+- iOS `getScheduled()` recomputes `nextFireAt` at read time; the schedule-time value went
+  stale after a weekly alarm's first fire.
+- Android `WakeAlarmActivity` swallows predictive back (API 33+) while ringing, matching
+  the hardware key.
+- Expo plugin: the AppDelegate import is anchored on a real import line (clear error
+  when there is none), a missing `sounds` folder fails with the resolved path, and
+  config-plugins resolves through `expo/config-plugins` before `@expo/config-plugins`.
+- Stop intent template: `openAppWhenRun` → `supportedModes` (iOS 26 SDK).
+- Release workflow runs the Android and Swift test suites before publishing.
+
+### Documented
+
+- Android `getScheduled()` reads the library's persisted slots (there is no
+  `AlarmManager` listing API) and can list alarms the OS cancelled after an exact-alarm
+  revocation until the grant returns.
+- iOS: a host calling `setNotificationCategories` replaces the `WAKE_ALARM` category.
+
 ## 1.0.0
 
 First release. New architecture only (TurboModule), bare React Native and Expo,

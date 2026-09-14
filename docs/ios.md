@@ -121,7 +121,10 @@ alarm notification it returns `[.banner, .list, .sound]` from `willPresent`, so 
 alarm that lands while the app is in the foreground is still shown and heard, and it
 records `stopped` when the user taps **Stop** or the notification itself. If your app
 sets its own delegate *after* `install()`, the alarm handling is off until the module
-loads on the first API call.
+loads on the first API call. The `WAKE_ALARM` category is registered as a union with
+whatever categories exist, but `setNotificationCategories` replaces the whole set: a host
+that calls it later wipes the Stop action. Call `WakeAlarm.requestPermissions()` or
+schedule again afterwards to restore it.
 
 Every `fired` and `stopped` — from AlarmKit, the Stop App Intent, a notification
 response or `stopRinging()` — is parked for `consumePendingAction()` **and** emitted;

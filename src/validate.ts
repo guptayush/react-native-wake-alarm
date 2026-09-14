@@ -4,7 +4,9 @@ import type { NativeAlarmInput } from './NativeWakeAlarm';
 export const DEFAULT_MAX_RING_MS = 600_000;
 const MIN_RING_MS = 1_000;
 const MAX_RING_MS = 3_600_000;
-const ID_PATTERN = /^[A-Za-z0-9_.-]{1,64}$/;
+export const ID_PATTERN = /^[A-Za-z0-9_.-]{1,64}$/;
+// The Android raw-resource rule; iOS accepts more, but a name must be loadable on both platforms.
+export const SOUND_PATTERN = /^[a-z][a-z0-9_]*$/;
 
 export class WakeAlarmInputError extends Error {
   readonly code = 'invalid_input' as const;
@@ -46,6 +48,16 @@ export function validateAlarmInput(input: AlarmInput): NativeAlarmInput {
       `must be an integer ${MIN_RING_MS}–${MAX_RING_MS}`
     );
   }
+  const sound = input.sound ?? '';
+  if (
+    typeof sound !== 'string' ||
+    (sound !== '' && !SOUND_PATTERN.test(sound))
+  ) {
+    throw new WakeAlarmInputError(
+      'sound',
+      'must be a bundled resource name matching /^[a-z][a-z0-9_]*$/, no extension'
+    );
+  }
   const sortedPayload = Object.fromEntries(
     Object.keys(payload)
       .sort()
@@ -58,7 +70,7 @@ export function validateAlarmInput(input: AlarmInput): NativeAlarmInput {
     days: [...new Set(days as Weekday[])].sort((a, b) => a - b),
     title: input.title,
     body: input.body ?? '',
-    sound: input.sound ?? '',
+    sound,
     payloadJson: JSON.stringify(sortedPayload),
     maxRingMs,
   };

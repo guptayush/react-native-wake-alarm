@@ -30,9 +30,11 @@ import {
   toGate,
 } from './mapResult';
 import { setRegisteredRingScreen } from './ringScreen/current';
-import { validateAlarmInput, WakeAlarmInputError } from './validate';
-
-const ID_PATTERN = /^[A-Za-z0-9_.-]{1,64}$/;
+import {
+  ID_PATTERN,
+  validateAlarmInput,
+  WakeAlarmInputError,
+} from './validate';
 
 export const errorMessage = (e: unknown): string =>
   e instanceof Error ? e.message : String(e);

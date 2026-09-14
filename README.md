@@ -69,7 +69,7 @@ Every platform refusal is a typed result, never a silent failure. [docs/api.md](
 | `days` | `Weekday[]` | no | one-off | ISO weekdays, `1` = Monday … `7` = Sunday. Omitted or empty fires once. |
 | `title` | `string` | yes | — | Shown on the ring screen and the iOS alert. |
 | `body` | `string` | no | — | Second line on the notification and ring screen. |
-| `sound` | `string` | no | system alarm tone | Bundled resource name without extension: Android `res/raw/<name>.mp3\|wav`, iOS `<name>.caf\|wav\|aiff` in the app bundle. |
+| `sound` | `string` | no | system alarm tone | Bundled resource name without extension, `/^[a-z][a-z0-9_]*$/` (the Android resource rule, applied on both platforms): Android `res/raw/<name>.mp3\|wav`, iOS `<name>.caf\|wav\|aiff` in the app bundle. Anything else is `failed / invalid_input`. |
 | `payload` | `Record<string, string>` | no | `{}` | String values only; returned on the ringing alarm and in events. |
 | `maxRingMs` | `number` | no | `600000` | Android give-up cap, 1000–3600000 ms. |
 

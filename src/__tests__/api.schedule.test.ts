@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import native from '../__mocks__/NativeWakeAlarm';
 import { createApi } from '../api';
+import { ID_PATTERN } from '../validate';
 
 jest.mock('../NativeWakeAlarm');
 
@@ -89,6 +90,7 @@ describe('cancel / cancelAll / getScheduled', () => {
     await api.cancel('abc');
     expect(native.cancel).toHaveBeenCalledWith('abc');
     await expect(api.cancel('')).rejects.toThrow('id: must match');
+    await expect(api.cancel('a:b')).rejects.toThrow(String(ID_PATTERN));
   });
 
   it('cancelAll forwards', async () => {

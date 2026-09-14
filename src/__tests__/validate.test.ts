@@ -18,6 +18,13 @@ describe('validateAlarmInput', () => {
     });
   });
 
+  it('accepts an empty sound and a lowercase resource name', () => {
+    expect(validateAlarmInput({ ...base, sound: '' }).sound).toBe('');
+    expect(validateAlarmInput({ ...base, sound: 'bell_2' }).sound).toBe(
+      'bell_2'
+    );
+  });
+
   it('sorts and dedupes days', () => {
     expect(validateAlarmInput({ ...base, days: [5, 1, 5, 3] }).days).toEqual([
       1, 3, 5,
@@ -49,6 +56,10 @@ describe('validateAlarmInput', () => {
     [{ ...base, payload: { a: 1 } as never }, 'payload'],
     [{ ...base, maxRingMs: 999 }, 'maxRingMs'],
     [{ ...base, maxRingMs: 3600001 }, 'maxRingMs'],
+    [{ ...base, sound: 'Soft-Bell' }, 'sound'],
+    [{ ...base, sound: 'chime.mp3' }, 'sound'],
+    [{ ...base, sound: '1st' }, 'sound'],
+    [{ ...base, sound: 7 as never }, 'sound'],
   ])('rejects %j on field %s', (input, field) => {
     expect(() => validateAlarmInput(input)).toThrow(WakeAlarmInputError);
     try {

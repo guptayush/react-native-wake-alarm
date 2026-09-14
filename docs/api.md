@@ -94,7 +94,7 @@ interface AlarmInput {
   days?: Weekday[]; // ISO 1 (Monday) – 7 (Sunday); empty or omitted = one-off
   title: string; // non-empty
   body?: string;
-  sound?: string; // bundled resource name, no extension
+  sound?: string; // bundled resource name, no extension, /^[a-z][a-z0-9_]*$/
   payload?: Record<string, string>; // string values only
   maxRingMs?: number; // integer 1000–3600000, default 600000 (Android give-up cap)
 }
@@ -102,8 +102,9 @@ interface AlarmInput {
 
 Validation (`src/validate.ts`) throws `WakeAlarmInputError` for the first field that
 fails; `schedule()` catches it and resolves `invalid_input` instead of letting it
-propagate. `days` is de-duplicated and sorted; a non-string `payload` value or an
-out-of-range `days` entry is rejected, not coerced.
+propagate. `days` is de-duplicated and sorted; a non-string `payload` value, an
+out-of-range `days` entry or a `sound` outside the Android resource rule (uppercase, a
+hyphen, an extension) is rejected, not coerced — a bad name fails here, not at fire time.
 
 ### `ScheduleResult`
 

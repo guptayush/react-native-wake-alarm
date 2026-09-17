@@ -116,12 +116,13 @@ interface PermissionStatus {
   exactAlarm: Gate;        // Android 12+
   fullScreenIntent: Gate;  // Android 14+
   batteryUnrestricted: Gate;
+  backgroundPopup: Gate;   // not_determined on Xiaomi/Vivo/Oppo/Realme, else not_applicable
   alarmKit: Gate;          // iOS 26+
 }
 
 type SettingsKind =
   | 'notifications' | 'exactAlarm' | 'fullScreenIntent' | 'battery'
-  | 'autostart' | 'alarmKit';
+  | 'autostart' | 'backgroundPopup' | 'alarmKit';
 
 interface RingingAlarm { id: string; title: string; body?: string;
   payload?: Record<string, string>; firedAt: number; scheduledFor: number }

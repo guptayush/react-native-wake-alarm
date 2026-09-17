@@ -16,7 +16,13 @@ yarn example ios       # simulator for a build check; AlarmKit needs a real devi
 
 Open the app and use the **Permissions** panel at the top. Tap **Request prompts** first,
 then **Fix** on any row still red, until every row reads `granted` (or `not_applicable`
-where the OS doesn't have that gate).
+where the OS doesn't have that gate). `backgroundPopup` reads `not_determined` on Xiaomi,
+Vivo, Oppo and Realme and never changes: turn the vendor switches on by hand.
+
+A build installed from the CLI or `adb` keeps `USE_FULL_SCREEN_INTENT` granted — only a
+Play install revokes it — so on an emulator the full-screen row is green without asking.
+To exercise the denied path, turn "Full screen notifications" off for the app in Settings
+first.
 
 ## 3. Android cases
 
@@ -67,10 +73,10 @@ and backgrounded/screen-on cases are expected to show a heads-up.
 
   | OEM             | Device | OS version | Killed case | Notes |
   | --------------- | ------ | ---------- | ------------ | ----- |
-  | Xiaomi / Redmi  |        |            |              |       |
-  | Oppo / Realme   |        |            |              |       |
-  | Vivo            |        |            |              |       |
-  | Samsung         |        |            |              |       |
+  | Xiaomi / Redmi  |        |            |              | needs the vendor pop-up + lock-screen switches for the takeover |
+  | Oppo / Realme   |        |            |              | same switches; `backgroundPopup` falls back to app details |
+  | Vivo            |        |            |              | same switches; a heads-up-only lock screen means they are off |
+  | Samsung         |        |            |              | no autostart; add the app to "Never sleeping apps" |
 
 - **Timing** — `adb logcat -s ActivityManager:I | grep RingService` gives the service
   start timestamp; compare it against the scheduled minute to sanity-check the delta

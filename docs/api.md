@@ -149,6 +149,7 @@ interface PermissionStatus {
   exactAlarm: Gate; // Android 12+, not_applicable elsewhere
   fullScreenIntent: Gate; // Android 14+, not_applicable elsewhere
   batteryUnrestricted: Gate; // Android only
+  backgroundPopup: Gate; // not_determined on Xiaomi/Vivo/Oppo/Realme (unreadable vendor switches), not_applicable elsewhere
   alarmKit: Gate; // iOS 26+, not_applicable elsewhere
 }
 ```
@@ -156,10 +157,12 @@ interface PermissionStatus {
 ### `SettingsKind`
 
 ```ts
-type SettingsKind = 'notifications' | 'exactAlarm' | 'fullScreenIntent' | 'battery' | 'autostart' | 'alarmKit';
+type SettingsKind =
+  | 'notifications' | 'exactAlarm' | 'fullScreenIntent' | 'battery'
+  | 'autostart' | 'backgroundPopup' | 'alarmKit';
 ```
 
-`exactAlarm`, `fullScreenIntent`, `battery` and `autostart` are Android-only;
+`exactAlarm`, `fullScreenIntent`, `battery`, `autostart` and `backgroundPopup` are Android-only;
 `openSettings` on iOS only handles `'notifications'` and `'alarmKit'`.
 
 ### Event payloads

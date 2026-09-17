@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.2.0
+
+### Added
+
+- `PermissionStatus.backgroundPopup`: `not_determined` on Xiaomi, Vivo, Oppo and Realme
+  ROMs, whose own per-app "display pop-up windows while running in background" and
+  "show on lock screen" switches demote a full-screen intent to a heads-up even with
+  `fullScreenIntent: granted`; `not_applicable` elsewhere and on iOS. The switches cannot
+  be read, so the gate names the ROMs that have them.
+- `openSettings('backgroundPopup')` opens the app's page in the Xiaomi or Vivo permission
+  manager where those switches live, falling back to the app's details screen.
+- A recommended prompt order and copy notes in `docs/permissions-and-store-policy.md`.
+
+### Changed
+
+- `openSettings('battery')` opens the direct per-app dialog when the host manifest
+  declares `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`; otherwise the system-wide list, as
+  before. The library still does not add that permission.
+- The Samsung autostart entry also tries the newer One UI battery activity.
+- Docs: sideloaded builds keep `USE_FULL_SCREEN_INTENT` granted (only Play revokes it), so a
+  CLI or emulator install never shows the full-screen prompt.
+
 ## 1.1.0
 
 ### Added

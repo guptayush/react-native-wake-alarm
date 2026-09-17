@@ -67,6 +67,12 @@ happens only when the screen is off or the lock screen is showing. That is platf
 behaviour, not a permission state: `fullScreenIntent: granted` still means heads-up on
 an unlocked, lit screen.
 
+Xiaomi, Vivo, Oppo and Realme ROMs add their own per-app "display pop-up windows while
+running in background" and "show on lock screen" switches on top, off by default, and
+demote the full-screen intent to a heads-up while either is off. The library cannot read
+them; `getPermissionStatus().backgroundPopup` is `not_determined` on those manufacturers
+and `openSettings('backgroundPopup')` opens the vendor page where they live.
+
 The activity finishes itself as soon as the ring stops, from any source (Stop button,
 `stopRinging()`, or the `maxRingMs` timeout). Back is swallowed while an alarm is ringing —
 the hardware key and, on Android 13+ with predictive back enabled, the gesture.
@@ -76,6 +82,7 @@ the hardware key and, on Android 13+ with predictive back enabled, the gesture.
 | Condition | What happens | `schedule` result |
 | --- | --- | --- |
 | Full-screen intent revoked (Android 14+) | heads-up notification, audio already playing, tap opens the ring activity | `ok_degraded / no_full_screen_intent` |
+| Vendor background pop-up / lock-screen switch off (Xiaomi, Vivo, Oppo, Realme) | heads-up notification, audio plays, tap opens the ring activity; not detectable — `backgroundPopup` reads `not_determined` on these ROMs | `ok` |
 | Exact alarm not granted (Android 12+) | nothing is armed | `failed / no_exact_alarm_permission` |
 | Notifications denied (Android 13+) | service still rings audio; no notification, no Stop action; app must stop via the API | `ok_degraded / no_notification_permission` |
 | Sound resource missing | system alarm ringtone | `ok` |
@@ -130,6 +137,14 @@ change.
 - **OEM autostart** cannot be queried — there is no Android API for it. `openSettings('autostart')`
   opens a best-effort table of vendor screens (Xiaomi, Oppo, Realme, OnePlus, Vivo,
   Samsung, Huawei, Asus), falling back to the app's details screen.
+- **OEM background pop-up / lock-screen switches** cannot be queried either.
+  `backgroundPopup` only reports which manufacturers have them, and
+  `openSettings('backgroundPopup')` opens the Xiaomi or Vivo permission editor for the app,
+  falling back to the app's details screen.
+- `openSettings('battery')` opens the system-wide battery optimisation list unless the
+  host manifest declares `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, in which case it opens the
+  direct per-app dialog. The library does not add that permission: Play restricts it to
+  apps whose core function needs it, so the host decides.
 - `permissionChanged` covers `exactAlarm` only: `BootReceiver` emits it after re-arming on
   the exact-alarm permission broadcast. Every other gate has no system broadcast, so poll
   `getPermissionStatus()` (for example after returning from `openSettings`).

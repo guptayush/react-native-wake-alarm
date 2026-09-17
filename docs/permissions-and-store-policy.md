@@ -40,6 +40,31 @@ at all.
 - **Default**: `not_applicable` below Android 14. On 14+, **revoked by default** for
   apps not classified as alarm or calling apps at install time — expect to ask for this
   explicitly, in context, the first time a user schedules an alarm.
+- **Sideloaded builds keep it.** The revocation is done by Google Play as the installer,
+  not by the OS: a build installed from the React Native CLI, Android Studio or `adb`
+  reads `granted` from the start and never shows the prompt, on emulators and devices
+  alike. Test the denied path by turning the toggle off in Settings or with a Play
+  internal-track install; do not conclude from a CLI build that the step is unnecessary.
+- **Granted is not the whole story on some ROMs** — see `backgroundPopup` below.
+
+### `backgroundPopup` (Android only)
+
+- **Controls**: whether the ROM lets the full-screen intent actually launch the ring
+  activity. Xiaomi (HyperOS/MIUI, incl. Redmi and POCO), Vivo (OriginOS/Funtouch, incl.
+  iQOO), Oppo and Realme (ColorOS) add their own per-app switches — "Display pop-up
+  windows while running in background" and "Show on lock screen" — and demote the
+  full-screen intent to a heads-up banner while either is off, even with
+  `fullScreenIntent: granted`. Audio still plays; the alarm rings as a banner.
+- **Query**: `backgroundPopup` field. No API reads the vendor switches, so the value is
+  `not_determined` on those manufacturers — meaning "this ROM has the switches and the
+  library cannot see them" — and `not_applicable` everywhere else, including iOS.
+- **Fix**: no runtime prompt — `openSettings('backgroundPopup')` opens the app's page in
+  the vendor permission manager (Xiaomi and Vivo components; other manufacturers fall
+  back to the app's details screen), where both switches live.
+- **Default**: off on a fresh install on those ROMs. Show the prompt once when the gate
+  reads `not_determined`, in the same flow as the full-screen step; do not repeat it on
+  every screen, because the library cannot tell when the user has turned the switches on.
+
 
 ### `batteryUnrestricted` (Android only)
 
@@ -71,6 +96,25 @@ at all.
 - **Fix**: `requestPermissions()` prompts (iOS 26+ only); otherwise
   `openSettings('alarmKit')` opens the app's Settings page.
 - **Default**: `not_applicable` below iOS 26.
+
+## Recommended prompt order
+
+Ask in context, the first time a user sets an alarm, one dialog per gate, each with a
+sentence on what breaks without it. Re-read `getPermissionStatus()` after every return
+from Settings.
+
+1. `notifications` — `requestPermissions()`; system prompt on Android 13+ and iOS.
+2. `exactAlarm` (Android 12+) — `openSettings('exactAlarm')` when `denied`. Without it
+   nothing is armed. The alarm re-arms and `permissionChanged` fires when the user flips
+   the toggle.
+3. `fullScreenIntent` (Android 14+) — `openSettings('fullScreenIntent')` when `denied`.
+   Without it the alarm rings as a banner the user has to tap.
+4. `backgroundPopup` — `openSettings('backgroundPopup')` when `not_determined`, once.
+   Same consequence as 3 on Xiaomi, Vivo, Oppo and Realme.
+5. `batteryUnrestricted` and autostart — `openSettings('battery')` when `denied`, plus
+   `openSettings('autostart')` once on manufacturers that have it. Samsung has no
+   autostart; its battery page ("Never sleeping apps") is the equivalent.
+6. `alarmKit` (iOS 26+) — `requestPermissions()` prompts after notifications.
 
 ## Play Console
 

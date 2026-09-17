@@ -52,6 +52,7 @@ Every platform refusal is a typed result, never a silent failure. [docs/api.md](
 | Notifications | prompt (13+) | prompt |
 | Exact alarms | Settings toggle (12+), `openSettings('exactAlarm')` | n/a |
 | Full-screen alerts | Settings toggle (14+); revoked at install for non-alarm apps | n/a |
+| Background pop-ups / lock screen (Xiaomi, Vivo, Oppo, Realme) | vendor switch, `openSettings('backgroundPopup')` | n/a |
 | Battery unrestricted / autostart | Settings, OEM dependent | n/a |
 | AlarmKit | n/a | prompt (26+) |
 

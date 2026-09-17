@@ -1,14 +1,26 @@
 package com.wakealarm
 
+import android.Manifest
 import android.content.ComponentName
+import android.content.Context
+import android.net.Uri
+import android.provider.Settings
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
 class SettingsIntentsTest {
+  private val context: Context get() = RuntimeEnvironment.getApplication()
+
   @Test fun xiaomiCandidatesComeFirstForXiaomi() {
     val c = SettingsIntents.autostartCandidates("Xiaomi")
     assertEquals("com.miui.securitycenter", c.first().packageName)
@@ -48,5 +60,54 @@ class SettingsIntentsTest {
 
   @Test fun matchingIsCaseInsensitive() {
     assertEquals(SettingsIntents.autostartCandidates("XIAOMI"), SettingsIntents.autostartCandidates("xiaomi"))
+  }
+
+  @Test fun samsungCarriesBothBatteryActivityGenerations() {
+    val c = SettingsIntents.autostartCandidates("samsung").take(2)
+    assertEquals(listOf("com.samsung.android.lool", "com.samsung.android.lool"), c.map { it.packageName })
+    assertEquals(2, c.map { it.className }.distinct().size)
+  }
+
+  @Test fun xiaomiPermissionEditorsLeadForXiaomiAndReadThePackageFromExtraPkgname() {
+    val c = SettingsIntents.permissionEditorCandidates("Xiaomi")
+    assertEquals("com.miui.securitycenter", c.first().component.packageName)
+    assertTrue(c.takeWhile { it.manufacturer == "xiaomi" }.size >= 2)
+    assertTrue(c.filter { it.manufacturer == "xiaomi" }.all { it.packageExtra == "extra_pkgname" })
+  }
+
+  @Test fun vivoPermissionEditorLeadsForVivoAndReadsThePackageFromPackagename() {
+    val c = SettingsIntents.permissionEditorCandidates("vivo")
+    assertEquals(
+      ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.SoftPermissionDetailActivity"),
+      c.first().component,
+    )
+    assertEquals("packagename", c.first().packageExtra)
+  }
+
+  @Test fun backgroundPopupFallsBackToAppDetailsWhenNoVendorEditorResolves() {
+    val intent = SettingsIntents.intentFor(context, "backgroundPopup")!!
+    assertEquals(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, intent.action)
+    assertEquals(Uri.parse("package:${context.packageName}"), intent.data)
+  }
+
+  @Test fun batteryOpensTheAllAppsListWhenTheHostDoesNotDeclareTheRequestPermission() {
+    assertFalse(SettingsIntents.declaresBatteryOptimizationRequest(context))
+    val intent = SettingsIntents.intentFor(context, "battery")!!
+    assertEquals(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS, intent.action)
+    assertNull(intent.data)
+  }
+
+  @Test fun batteryOpensTheDirectDialogWhenTheHostDeclaresTheRequestPermission() {
+    val info = shadowOf(context.packageManager).getInternalMutablePackageInfo(context.packageName)
+    info.requestedPermissions = arrayOf(Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+    assertTrue(SettingsIntents.declaresBatteryOptimizationRequest(context))
+    val intent = SettingsIntents.intentFor(context, "battery")!!
+    assertEquals(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, intent.action)
+    assertEquals(Uri.parse("package:${context.packageName}"), intent.data)
+  }
+
+  @Test fun unknownKindsResolveToNull() {
+    assertNull(SettingsIntents.intentFor(context, "alarmKit"))
+    assertNull(SettingsIntents.intentFor(context, "bogus"))
   }
 }

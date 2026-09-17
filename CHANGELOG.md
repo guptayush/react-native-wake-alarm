@@ -12,6 +12,9 @@
 - `openSettings('backgroundPopup')` opens the app's page in the Xiaomi or Vivo permission
   manager where those switches live, falling back to the app's details screen.
 - A recommended prompt order and copy notes in `docs/permissions-and-store-policy.md`.
+- `PermissionStatus` and `SettingsKind` each gain one member; code that switches
+  exhaustively over `SettingsKind` or builds a `Record<SettingsKind, …>` needs a
+  `backgroundPopup` case.
 
 ### Changed
 

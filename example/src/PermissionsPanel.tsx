@@ -23,6 +23,11 @@ const ROWS: {
     settings: 'fullScreenIntent',
   },
   {
+    key: 'backgroundPopup',
+    label: 'Background pop-up / lock screen (Xiaomi, Vivo, Oppo, Realme)',
+    settings: 'backgroundPopup',
+  },
+  {
     key: 'batteryUnrestricted',
     label: 'Battery unrestricted',
     settings: 'battery',

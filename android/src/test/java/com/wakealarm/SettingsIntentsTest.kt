@@ -106,6 +106,14 @@ class SettingsIntentsTest {
     assertEquals(Uri.parse("package:${context.packageName}"), intent.data)
   }
 
+  @Test @Config(sdk = [30]) fun batteryDeclarationIsReadThroughTheLegacyPackageInfoCallBelow33() {
+    assertFalse(SettingsIntents.declaresBatteryOptimizationRequest(context))
+    val info = shadowOf(context.packageManager).getInternalMutablePackageInfo(context.packageName)
+    info.requestedPermissions = arrayOf(Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+    assertTrue(SettingsIntents.declaresBatteryOptimizationRequest(context))
+    assertEquals(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, SettingsIntents.intentFor(context, "battery")!!.action)
+  }
+
   @Test fun unknownKindsResolveToNull() {
     assertNull(SettingsIntents.intentFor(context, "alarmKit"))
     assertNull(SettingsIntents.intentFor(context, "bogus"))

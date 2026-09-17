@@ -8,6 +8,7 @@ const GRANTED = {
   exactAlarm: 'granted',
   fullScreenIntent: 'granted',
   batteryUnrestricted: 'granted',
+  backgroundPopup: 'not_applicable',
   alarmKit: 'not_applicable',
 };
 

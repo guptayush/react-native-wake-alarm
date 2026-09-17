@@ -50,6 +50,7 @@ export interface PermissionStatus {
   exactAlarm: Gate;
   fullScreenIntent: Gate;
   batteryUnrestricted: Gate;
+  backgroundPopup: Gate;
   alarmKit: Gate;
 }
 
@@ -59,6 +60,7 @@ export type SettingsKind =
   | 'fullScreenIntent'
   | 'battery'
   | 'autostart'
+  | 'backgroundPopup'
   | 'alarmKit';
 
 export interface RingingAlarm {

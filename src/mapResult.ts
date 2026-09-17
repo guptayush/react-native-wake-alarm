@@ -127,6 +127,7 @@ export function mapPermissionStatus(
     exactAlarm: toGate(n.exactAlarm),
     fullScreenIntent: toGate(n.fullScreenIntent),
     batteryUnrestricted: toGate(n.batteryUnrestricted),
+    backgroundPopup: toGate(n.backgroundPopup),
     alarmKit: toGate(n.alarmKit),
   };
 }

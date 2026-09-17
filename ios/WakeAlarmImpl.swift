@@ -191,7 +191,7 @@ import UIKit
   public func getPermissionStatus(_ completion: @escaping ([String: Any]) -> Void) {
     notifications.authorizationStatus { n in
       completion(["notifications": n, "exactAlarm": "not_applicable", "fullScreenIntent": "not_applicable",
-                  "batteryUnrestricted": "not_applicable", "alarmKit": Self.gate(fromAlarmKit: AlarmKitScheduler.authorizationStatus())])
+                  "batteryUnrestricted": "not_applicable", "backgroundPopup": "not_applicable", "alarmKit": Self.gate(fromAlarmKit: AlarmKitScheduler.authorizationStatus())])
     }
   }
 

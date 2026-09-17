@@ -9,6 +9,7 @@ const nativeStatus = {
   exactAlarm: 'denied',
   fullScreenIntent: 'not_applicable',
   batteryUnrestricted: 'granted',
+  backgroundPopup: 'not_determined',
   alarmKit: 'not_applicable',
 };
 
@@ -33,9 +34,11 @@ describe('permissions', () => {
     native.openSettings.mockResolvedValue(undefined);
     await api.openSettings('exactAlarm');
     expect(native.openSettings).toHaveBeenCalledWith('exactAlarm');
+    await api.openSettings('backgroundPopup');
+    expect(native.openSettings).toHaveBeenCalledWith('backgroundPopup');
     await expect(api.openSettings('bogus' as never)).rejects.toThrow(
       'kind: must be one of'
     );
-    expect(native.openSettings).toHaveBeenCalledTimes(1);
+    expect(native.openSettings).toHaveBeenCalledTimes(2);
   });
 });

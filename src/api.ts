@@ -45,6 +45,7 @@ const SETTINGS_KINDS: readonly SettingsKind[] = [
   'fullScreenIntent',
   'battery',
   'autostart',
+  'backgroundPopup',
   'alarmKit',
 ];
 const EVENTS: readonly WakeAlarmEvent[] = [
@@ -60,6 +61,7 @@ const GATE_KEYS = new Set<keyof PermissionStatus>([
   'exactAlarm',
   'fullScreenIntent',
   'batteryUnrestricted',
+  'backgroundPopup',
   'alarmKit',
 ]);
 

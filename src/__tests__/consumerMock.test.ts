@@ -52,6 +52,7 @@ describe('react-native-wake-alarm/jest', () => {
     await expect(consumerMock.getScheduled()).resolves.toEqual([]);
     await expect(consumerMock.getPermissionStatus()).resolves.toMatchObject({
       notifications: 'granted',
+      backgroundPopup: 'not_applicable',
       alarmKit: 'not_applicable',
     });
     await expect(consumerMock.requestPermissions()).resolves.toMatchObject({

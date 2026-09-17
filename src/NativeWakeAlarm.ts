@@ -42,6 +42,7 @@ export type NativePermissionStatus = {
   exactAlarm: string;
   fullScreenIntent: string;
   batteryUnrestricted: string;
+  backgroundPopup: string;
   alarmKit: string;
 };
 

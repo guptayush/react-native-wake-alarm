@@ -93,6 +93,7 @@ class WakeAlarmModule(reactContext: ReactApplicationContext) : NativeWakeAlarmSp
     putString("exactAlarm", PermissionGates.exactAlarm(app))
     putString("fullScreenIntent", PermissionGates.fullScreenIntent(app))
     putString("batteryUnrestricted", PermissionGates.batteryUnrestricted(app))
+    putString("backgroundPopup", PermissionGates.backgroundPopup())
     putString("alarmKit", PermissionGates.NOT_APPLICABLE)
   }
 

@@ -349,6 +349,7 @@ describe('toGate / mapPermissionStatus', () => {
         exactAlarm: 'denied',
         fullScreenIntent: 'x',
         batteryUnrestricted: 'not_determined',
+        backgroundPopup: 'not_determined',
         alarmKit: 'not_applicable',
       })
     ).toEqual({
@@ -356,6 +357,7 @@ describe('toGate / mapPermissionStatus', () => {
       exactAlarm: 'denied',
       fullScreenIntent: 'not_applicable',
       batteryUnrestricted: 'not_determined',
+      backgroundPopup: 'not_determined',
       alarmKit: 'not_applicable',
     });
   });

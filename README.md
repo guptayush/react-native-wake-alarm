@@ -1,26 +1,72 @@
 # react-native-wake-alarm
 
-Real alarms for React Native. Wakes the phone, takes over the lock screen, and rings through silent mode and Do Not Disturb, with the app backgrounded or killed.
+Real alarms for React Native. Wakes the phone, takes over the lock screen, and rings through
+silent mode and Do Not Disturb, with the app backgrounded or killed.
 
-- **Android**: exact `AlarmManager` alarm → foreground service on the alarm audio stream → full-screen takeover. No JavaScript in the audible path.
-- **iOS 26+**: AlarmKit system alarm. Breaks through the silent switch and Focus.
-- **iOS < 26**: time-sensitive local notification with a Stop action (passes Focus, not the silent switch), reported to you as a degraded result.
-- Bare React Native and Expo. One package. New architecture, React Native 0.80 or later.
+A notification library schedules a notification and hopes the device shows it. This schedules an
+alarm: `AlarmManager.setAlarmClock` and a foreground service on Android, AlarmKit on iOS 26, and a
+time-sensitive notification on older iOS, all behind one typed API that tells you exactly what the
+platform did.
+
+## What you get
+
+- **Rings on time**, in Doze, from a killed app, through silent mode and Do Not Disturb.
+- **Lock-screen takeover** on Android with a ring screen you can replace with your own React component.
+- **Typed results**, never silent failures: every call resolves `ok`, `ok_degraded` or `failed` with a reason.
+- **Permission gates for the real world**: exact alarms, full-screen intent, battery, and the Xiaomi, Vivo, Oppo and Realme switches that stock Android cannot see.
+- **Survives reboot**, app update, and time or time-zone changes.
+- **Cold-start handoff**: what fired or stopped while JavaScript was not running is waiting for you on launch.
+- **Weekly repeats** in device local time, custom bundled sounds, vibration on the alarm channel.
+- **Bare React Native and Expo**, one package, a TurboModule with an Expo config plugin, a Jest mock included.
+
+## Requirements
+
+| | Minimum |
+| --- | --- |
+| React Native | 0.80, new architecture |
+| Android | API 26 (Android 8.0) |
+| iOS | 15.1 to build; 26 for AlarmKit, older versions get the notification fallback |
+| Expo | SDK 53 or newer, development build (not Expo Go) |
 
 ## Install
+
+**Bare React Native**
 
 ```sh
 npm install react-native-wake-alarm
 cd ios && pod install
 ```
 
-Expo: `npx expo install react-native-wake-alarm` and add `"react-native-wake-alarm"` to `plugins` in `app.json`. See [docs/expo.md](docs/expo.md).
+Then copy one Swift file into your iOS app target and add an Info.plist key and an
+entitlement, as described in [docs/ios.md](docs/ios.md). Android needs nothing else.
 
-iOS also needs a short Swift file copied into your app target and an Info.plist key plus an entitlement. See [docs/ios.md](docs/ios.md).
+**Expo**
 
-Import the package from a module your entry file reaches (`index.js` or `App.tsx`), not lazily inside a screen: the import registers the lock-screen ring component, and that is all it does at launch. See [docs/android.md](docs/android.md#the-ring-screen).
+```sh
+npx expo install react-native-wake-alarm
+```
 
-## Use
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "react-native-wake-alarm",
+        { "alarmKitUsageDescription": "Alarms you set can ring even when the phone is silent." }
+      ]
+    ]
+  }
+}
+```
+
+Then `npx expo prebuild`. The plugin adds the permissions, the Swift file, the plist key and the
+entitlement, and can bundle a folder of sounds. Options in [docs/expo.md](docs/expo.md).
+
+**Both**: import the package from a module your entry file reaches (`index.js` or `App.tsx`), not
+lazily inside a screen. The import registers the lock-screen ring component, and that is all it
+does at launch.
+
+## Quick start
 
 ```ts
 import WakeAlarm from 'react-native-wake-alarm';
@@ -36,14 +82,99 @@ const result = await WakeAlarm.schedule({
   sound: 'chime',                 // bundled sound name, optional
 });
 
-if (result.status === 'failed') showFix(result.reason);
-if (result.status === 'ok_degraded') explain(result.reason);
-
-WakeAlarm.addListener('fired', ({ id }) => {});
-WakeAlarm.addListener('stopped', ({ id, source }) => {});
+switch (result.status) {
+  case 'ok':                                       // armed; result.nextFireAt is the next fire time
+    break;
+  case 'ok_degraded':                              // armed, but weaker: e.g. 'no_full_screen_intent' rings as a banner
+    console.warn('alarm degraded:', result.reason);
+    break;
+  case 'failed':                                   // nothing armed: e.g. 'no_exact_alarm_permission'
+    if (result.reason === 'no_exact_alarm_permission') await WakeAlarm.openSettings('exactAlarm');
+    break;
+}
 ```
 
-Every platform refusal is a typed result, never a silent failure. [docs/api.md](docs/api.md) lists every method, result and reason.
+### Every method
+
+```ts
+// Permissions — read, prompt, or send the user to the right Settings screen
+const status = await WakeAlarm.getPermissionStatus();  // every gate, never prompts
+const after = await WakeAlarm.requestPermissions();    // prompts notifications (+ AlarmKit on iOS 26), returns the re-read gates
+if (after.exactAlarm === 'denied') await WakeAlarm.openSettings('exactAlarm');
+if (after.fullScreenIntent === 'denied') await WakeAlarm.openSettings('fullScreenIntent');
+if (after.backgroundPopup === 'not_determined') await WakeAlarm.openSettings('backgroundPopup'); // once, Xiaomi/Vivo/Oppo/Realme
+// other kinds: 'notifications' | 'battery' | 'autostart' | 'alarmKit'
+
+// Scheduling
+const result = await WakeAlarm.schedule({ id: 'nap', hour: 14, minute: 0, title: 'Nap over' }); // ok | ok_degraded | failed
+const alarms = await WakeAlarm.getScheduled();         // [{ ...input, nextFireAt, backend }]
+await WakeAlarm.cancel('nap');
+await WakeAlarm.cancelAll();
+
+// While an alarm rings
+const ringing = WakeAlarm.getRinging();                // sync; { id, title, body, payload, firedAt, scheduledFor } | null
+await WakeAlarm.stopRinging();                         // stops audio and vibration, closes the ring screen
+
+// On launch — what happened while JavaScript was not running, handed over once
+const pending = WakeAlarm.consumePendingAction();      // { id, action: 'fired' | 'stopped', at } | null
+
+// Events — each returns { remove() }; remove on unmount
+const fired = WakeAlarm.addListener('fired', ({ id, at }) => {});
+const stopped = WakeAlarm.addListener('stopped', ({ id, at, source }) => {}); // source: user | timeout | api | superseded
+const gates = WakeAlarm.addListener('permissionChanged', ({ gate, value }) => {}); // Android, gate 'exactAlarm'
+fired.remove(); stopped.remove(); gates.remove();
+
+// Ring screen (Android) — your component receives { alarm, stop }
+WakeAlarm.registerRingScreen(MyRingScreen);            // once, at startup
+```
+
+### Listening from a component
+
+Subscribe once, high in the tree, from a component that lives as long as you need the events,
+and remove on unmount. Two live `fired` listeners both run.
+
+```ts
+useEffect(() => {
+  const fired = WakeAlarm.addListener('fired', ({ id }) => openAlarmScreen(id));
+  const stopped = WakeAlarm.addListener('stopped', ({ id }) => closeAlarmScreen(id));
+  return () => { fired.remove(); stopped.remove(); };
+}, []);
+```
+
+Events only reach a live JavaScript runtime; `consumePendingAction()` covers the cold start.
+
+### Your own ring screen (Android)
+
+```tsx
+import WakeAlarm, { type RingScreenProps } from 'react-native-wake-alarm';
+
+function RingScreen({ alarm, stop }: RingScreenProps) {
+  return <MyFullScreenAlarm title={alarm.title} onStop={stop} />;
+}
+WakeAlarm.registerRingScreen(RingScreen); // once, at startup
+```
+
+On iOS the ringing surface is Apple's; use the events and the pending action to open your own
+screen inside the app when the user taps the alert.
+
+## Platform support
+
+| Capability | Android | iOS 26+ | iOS < 26 |
+| --- | :---: | :---: | :---: |
+| Rings from a killed app, in Doze | ✅ | ✅ | ✅ |
+| Through silent mode | ✅ | ✅ | ❌ (Focus yes, silent switch no) |
+| Lock-screen takeover | ✅ screen off or locked | ✅ system alert | banner |
+| Custom ring screen | ✅ React component | ❌ system UI | ❌ system UI |
+| Weekly repeats | ✅ | ✅ | ✅ |
+| Custom sound | ✅ `res/raw` | ✅ bundle | ✅ bundle |
+| Vibration | ✅ | system | system |
+| Stop from the alert | ✅ | ✅ | ✅ action |
+| Survives reboot | ✅ after first unlock | ✅ | ✅ |
+| Snooze | not yet | not yet | not yet |
+
+Android shows a full-screen intent as a heads-up banner while the screen is on and unlocked; the
+automatic takeover happens with the screen off or locked. That is platform behaviour on every
+Android version, not a permission state.
 
 ## What the user has to grant
 
@@ -51,14 +182,16 @@ Every platform refusal is a typed result, never a silent failure. [docs/api.md](
 | --- | --- | --- |
 | Notifications | prompt (13+) | prompt |
 | Exact alarms | Settings toggle (12+), `openSettings('exactAlarm')` | n/a |
-| Full-screen alerts | Settings toggle (14+); revoked at install for non-alarm apps | n/a |
+| Full-screen alerts | Settings toggle (14+); revoked at install by Play for non-alarm apps, kept by sideloaded builds | n/a |
 | Background pop-ups / lock screen (Xiaomi, Vivo, Oppo, Realme) | vendor switch, `openSettings('backgroundPopup')` | n/a |
 | Battery unrestricted / autostart | Settings, OEM dependent | n/a |
 | AlarmKit | n/a | prompt (26+) |
 
-[docs/permissions-and-store-policy.md](docs/permissions-and-store-policy.md) explains each gate and the Play Console declarations you must file.
+Ask in context the first time the user sets an alarm, one gate per dialog, in the order the
+[permissions guide](docs/permissions-and-store-policy.md#recommended-prompt-order) lists. It also
+covers the Play Console declarations you must file.
 
-## Props
+## API
 
 ### `schedule(alarm)` — `AlarmInput`
 
@@ -70,22 +203,14 @@ Every platform refusal is a typed result, never a silent failure. [docs/api.md](
 | `days` | `Weekday[]` | no | one-off | ISO weekdays, `1` = Monday … `7` = Sunday. Omitted or empty fires once. |
 | `title` | `string` | yes | — | Shown on the ring screen and the iOS alert. |
 | `body` | `string` | no | — | Second line on the notification and ring screen. |
-| `sound` | `string` | no | system alarm tone | Bundled resource name without extension, `/^[a-z][a-z0-9_]*$/` (the Android resource rule, applied on both platforms): Android `res/raw/<name>.mp3\|wav`, iOS `<name>.caf\|wav\|aiff` in the app bundle. Anything else is `failed / invalid_input`. |
+| `sound` | `string` | no | system alarm tone | Bundled resource name without extension, `/^[a-z][a-z0-9_]*$/`: Android `res/raw/<name>.mp3\|wav`, iOS `<name>.caf\|wav\|aiff` in the app bundle. Anything else is `failed / invalid_input`. |
 | `payload` | `Record<string, string>` | no | `{}` | String values only; returned on the ringing alarm and in events. |
 | `maxRingMs` | `number` | no | `600000` | Android give-up cap, 1000–3600000 ms. |
-| `vibrate` | `boolean` | no | `true` | Android: vibrate on the alarm usage while ringing; `false` rings audio only. iOS: stored and returned by `getScheduled()`, but AlarmKit and the notification fallback expose no vibration control. |
+| `vibrate` | `boolean` | no | `true` | Android: vibrate on the alarm usage while ringing. iOS: stored and echoed, no control over the system alert. |
 
-Resolves to a `ScheduleResult`, never rejects for a platform refusal: `ok`, `ok_degraded` with `reason` `no_full_screen_intent` \| `notification_fallback` \| `no_notification_permission`, or `failed` with `reason` `no_exact_alarm_permission` \| `alarm_kit_denied` \| `invalid_input` \| `native_error`.
-
-### `registerRingScreen(Component)` — `RingScreenProps` (Android)
-
-| Prop | Type | Notes |
-| --- | --- | --- |
-| `alarm.id` / `alarm.title` / `alarm.body` / `alarm.payload` | as scheduled | The ringing alarm. |
-| `alarm.firedAt` / `alarm.scheduledFor` | `number` | Epoch ms; their difference is the delivery delay. |
-| `stop` | `() => Promise<void>` | Stops audio and any vibration, closes the ring screen. |
-
-The default screen shows the time, title, body and a Stop button. On iOS the alert is Apple's system UI, with no slot for custom content.
+Resolves to a `ScheduleResult`: `ok`, `ok_degraded` with `reason` `no_full_screen_intent` \|
+`notification_fallback` \| `no_notification_permission`, or `failed` with `reason`
+`no_exact_alarm_permission` \| `alarm_kit_denied` \| `invalid_input` \| `native_error`.
 
 ### Events — `addListener(event, cb)`
 
@@ -93,28 +218,37 @@ The default screen shows the time, title, body and a Stop button. On iOS the ale
 | --- | --- |
 | `fired` | `{ id, at }` |
 | `stopped` | `{ id, at, source: 'user' \| 'timeout' \| 'api' \| 'superseded' }` |
-| `permissionChanged` | `{ gate, value }` — Android only, `gate: 'exactAlarm'` when the exact-alarm grant changes; reserved on iOS |
+| `permissionChanged` | `{ gate, value }` — Android, `gate: 'exactAlarm'` when the grant changes |
 
-Other methods: `cancel(id)`, `cancelAll()`, `getScheduled()`, `getPermissionStatus()`, `requestPermissions()`, `openSettings(kind)`, `getRinging()` (synchronous), `stopRinging()`, `consumePendingAction()`. Full signatures and every result value: [docs/api.md](docs/api.md).
+### Everything else
 
-Verified behaviour per platform and case is recorded in [docs/device-testing.md](docs/device-testing.md#6-results-so-far).
+`cancel(id)`, `cancelAll()`, `getScheduled()`, `getPermissionStatus()`, `requestPermissions()`,
+`openSettings(kind)`, `getRinging()`, `stopRinging()`, `consumePendingAction()`,
+`registerRingScreen(Component)`. Signatures, every result value and `RingScreenProps` are in
+[docs/api.md](docs/api.md).
 
 ## Testing your app
 
-The package resolves its TurboModule on the first call, which throws under Jest. Swap in
-the bundled mock — every `WakeAlarmApi` method is a `jest.fn()` with a sensible resolved
-value, and the named exports (`DefaultRingScreen`, `RING_COMPONENT_NAME`,
-`WakeAlarmInputError`) are stubbed too:
+The TurboModule resolves on the first call, which throws under Jest. Use the bundled mock: every
+method is a `jest.fn()` with a sensible resolved value.
 
 ```js
-jest.mock('react-native-wake-alarm', () =>
-  require('react-native-wake-alarm/jest')
-);
+jest.mock('react-native-wake-alarm', () => require('react-native-wake-alarm/jest'));
 ```
+
+## Known limitations
+
+- **Locked boot**: an alarm due between power-on and the first unlock cannot ring; re-arming runs after the unlock.
+- **OEM switches cannot be read**: on Xiaomi, Vivo, Oppo and Realme the `backgroundPopup` gate says the switches exist, not whether they are on.
+- **iOS below 26** passes Focus but not the silent switch, and there is no ringing surface to customise.
+- **iOS 26 Simulator** crashes on AlarmKit alert playback (an Apple bug); test AlarmKit on a device.
+- **No snooze yet**; it is the next feature.
 
 ## Docs
 
-[Android](docs/android.md) · [iOS](docs/ios.md) · [Expo](docs/expo.md) · [Permissions & store policy](docs/permissions-and-store-policy.md) · [API](docs/api.md) · [Device testing](docs/device-testing.md) · [Design](docs/design.md)
+[Android](docs/android.md) · [iOS](docs/ios.md) · [Expo](docs/expo.md) ·
+[Permissions & store policy](docs/permissions-and-store-policy.md) · [API](docs/api.md) ·
+[Device testing](docs/device-testing.md) · [Design](docs/design.md) · [Changelog](CHANGELOG.md)
 
 ## Contributing
 

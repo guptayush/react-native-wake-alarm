@@ -80,6 +80,8 @@ const result = await WakeAlarm.schedule({
   title: 'Morning session',
   body: 'Starts in 15 minutes',
   sound: 'chime',                 // bundled sound name, optional; null = silent
+  stopButtonTitle: 'Dismiss',     // iOS 26+ alert buttons, optional; defaults "Stop" / "Open"
+  openButtonTitle: 'Open app',
 });
 
 switch (result.status) {

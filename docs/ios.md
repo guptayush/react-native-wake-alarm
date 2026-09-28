@@ -100,6 +100,31 @@ presentation and no custom media. The notification fallback shows a standard
 time-sensitive banner with a **Stop** action; tapping its body opens the app and stops
 it, as for any notification.
 
+Relabel the buttons per alarm and handle **Open** in the app like this:
+
+```ts
+await WakeAlarm.schedule({
+  id: 'morning',
+  hour: 6, minute: 30,
+  title: 'Morning session',
+  stopButtonTitle: 'Dismiss',   // default "Stop"; 1–32 characters after trimming
+  openButtonTitle: 'Open app',  // default "Open"
+});
+
+// Open brings the app forward with the alarm still ringing. Re-read the ringing state
+// whenever the app becomes active (cold start or resume) and offer your own Stop.
+AppState.addEventListener('change', (state) => {
+  if (state !== 'active') return;
+  const ringing = WakeAlarm.getRinging();
+  if (ringing) showRingScreen(ringing, () => WakeAlarm.stopRinging());
+});
+```
+
+An invalid title (not a string, empty after trimming, or over 32 characters) makes
+`schedule()` resolve `failed / invalid_input` like any other bad field. `getScheduled()`
+echoes a title only when one was set. The labels do not apply to the notification
+fallback below iOS 26, whose Stop action keeps its fixed text.
+
 `vibrate` is accepted and echoed back by `getScheduled()` for parity with Android, but
 neither AlarmKit nor the notification fallback exposes vibration control — the system
 decides, and `vibrate: false` changes nothing on iOS.

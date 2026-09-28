@@ -49,6 +49,7 @@ class WakeAlarmModule(reactContext: ReactApplicationContext) : NativeWakeAlarmSp
         title = input.getString("title") ?: "", body = input.getString("body") ?: "", sound = input.getString("sound") ?: "",
         payloadJson = input.getString("payloadJson") ?: "{}", maxRingMs = input.getDouble("maxRingMs").toLong(), nextFireAt = 0,
         vibrate = if (input.hasKey("vibrate")) input.getBoolean("vibrate") else true,
+        silent = input.hasKey("silent") && input.getBoolean("silent"),
       )
       val slots = if (days.isEmpty()) listOf(base.copy(nextFireAt = AlarmMath.nextFireAt(now, hour, minute, null)))
         else days.map { d -> base.copy(weekday = d, nextFireAt = AlarmMath.nextFireAt(now, hour, minute, d)) }
@@ -82,6 +83,7 @@ class WakeAlarmModule(reactContext: ReactApplicationContext) : NativeWakeAlarmSp
         putString("title", s.title); putString("body", s.body); putString("sound", s.sound); putString("payloadJson", s.payloadJson)
         putDouble("maxRingMs", s.maxRingMs.toDouble()); putDouble("nextFireAt", s.nextFireAt.toDouble()); putString("backend", "alarm_manager")
         putBoolean("vibrate", s.vibrate)
+        putBoolean("silent", s.silent)
       })
     }
     arr

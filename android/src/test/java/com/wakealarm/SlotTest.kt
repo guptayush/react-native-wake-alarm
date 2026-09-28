@@ -23,4 +23,9 @@ class SlotTest {
     assertNull(Slot.fromJson("not json"))
     assertNull(Slot.fromJson("{\"id\":\"x\"}"))
   }
+  @Test fun silentRoundTripsAndDefaultsToFalseForRecordsWithoutTheKey() {
+    assertEquals(true, Slot.fromJson(slot.copy(silent = true).toJson())!!.silent)
+    val legacy = org.json.JSONObject(slot.toJson()).apply { remove("silent") }.toString()
+    assertEquals(false, Slot.fromJson(legacy)!!.silent)
+  }
 }

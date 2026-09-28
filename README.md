@@ -79,7 +79,7 @@ const result = await WakeAlarm.schedule({
   days: [1, 2, 3, 4, 5],          // ISO weekdays; omit for a one-off
   title: 'Morning session',
   body: 'Starts in 15 minutes',
-  sound: 'chime',                 // bundled sound name, optional
+  sound: 'chime',                 // bundled sound name, optional; null = silent
 });
 
 switch (result.status) {
@@ -205,7 +205,7 @@ covers the Play Console declarations you must file.
 | `days` | `Weekday[]` | no | one-off | ISO weekdays, `1` = Monday … `7` = Sunday. Omitted or empty fires once. |
 | `title` | `string` | yes | — | Shown on the ring screen and the iOS alert. |
 | `body` | `string` | no | — | Second line on the notification and ring screen. |
-| `sound` | `string` | no | system alarm tone | Bundled resource name without extension, `/^[a-z][a-z0-9_]*$/`: Android `res/raw/<name>.mp3\|wav`, iOS `<name>.caf\|wav\|aiff` in the app bundle. Anything else is `failed / invalid_input`. |
+| `sound` | `string \| null` | no | system alarm tone | Bundled resource name without extension, `/^[a-z][a-z0-9_]*$/`: Android `res/raw/<name>.mp3\|wav`, iOS `<name>.caf\|wav\|aiff` in the app bundle. Anything else is `failed / invalid_input`. `null` rings silently (vibration still follows `vibrate`). |
 | `payload` | `Record<string, string>` | no | `{}` | String values only; returned on the ringing alarm and in events. |
 | `maxRingMs` | `number` | no | `600000` | Android give-up cap, 1000–3600000 ms. |
 | `vibrate` | `boolean` | no | `true` | Android: vibrate on the alarm usage while ringing. iOS: stored and echoed, no control over the system alert. |

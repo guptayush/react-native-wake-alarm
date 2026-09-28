@@ -53,7 +53,8 @@ final class NotificationScheduler {
       let content = UNMutableNotificationContent()
       content.title = record.title
       content.body = record.body.isEmpty ? "Alarm" : record.body
-      content.sound = self.sound(named: record.sound)
+      // A nil sound is how UNNotificationContent expresses silence.
+      content.sound = record.silent ? nil : self.sound(named: record.sound)
       content.categoryIdentifier = Self.categoryId
       content.userInfo = ["wakeAlarmId": record.id, "payloadJson": record.payloadJson]
       if #available(iOS 15.0, *) { content.interruptionLevel = .timeSensitive }

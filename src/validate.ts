@@ -48,14 +48,17 @@ export function validateAlarmInput(input: AlarmInput): NativeAlarmInput {
       `must be an integer ${MIN_RING_MS}–${MAX_RING_MS}`
     );
   }
-  const sound = input.sound ?? '';
+  // null is the silent request; it travels as an empty sound plus the flag because the
+  // codegen'd bridge type keeps `sound` a plain string.
+  const silent = input.sound === null;
+  const sound = silent ? '' : (input.sound ?? '');
   if (
     typeof sound !== 'string' ||
     (sound !== '' && !SOUND_PATTERN.test(sound))
   ) {
     throw new WakeAlarmInputError(
       'sound',
-      'must be a bundled resource name matching /^[a-z][a-z0-9_]*$/, no extension'
+      'must be a bundled resource name matching /^[a-z][a-z0-9_]*$/, no extension, or null for silent'
     );
   }
   const sortedPayload = Object.fromEntries(
@@ -75,6 +78,7 @@ export function validateAlarmInput(input: AlarmInput): NativeAlarmInput {
     title: input.title,
     body: input.body ?? '',
     sound,
+    silent,
     payloadJson: JSON.stringify(sortedPayload),
     maxRingMs,
     vibrate,

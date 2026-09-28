@@ -34,4 +34,27 @@ final class AlarmRecordTests: XCTestCase {
   func testMissingRequiredFieldsRejectTheDictionary() {
     XCTAssertNil(AlarmRecord(dictionary: ["id": "x"]))
   }
+
+  func testSilentDefaultsToFalseAndRoundTripsThroughTheDictionary() {
+    XCTAssertFalse(AlarmRecord(dictionary: input)!.silent)
+    var silent = input; silent["silent"] = true
+    XCTAssertTrue(AlarmRecord(dictionary: silent)!.silent)
+    XCTAssertEqual(AlarmRecord(dictionary: silent)!.dictionary["silent"] as? Bool, true)
+  }
+
+  func testDecodesAOnePointTwoRecordWithoutTheSilentKey() throws {
+    let legacy = """
+    {"morning":{"id":"morning","hour":6,"minute":30,"days":[1],"title":"Yoga","body":"","sound":"","payloadJson":"{}","maxRingMs":600000,"vibrate":true,"backend":"alarm_kit","nextFireAt":1800000000000}}
+    """
+    let decoded = try JSONDecoder().decode([String: AlarmRecord].self, from: Data(legacy.utf8))
+    XCTAssertFalse(decoded["morning"]!.silent)
+  }
+
+  func testEncodesSilentSoTheNextDecodeKeepsTrue() throws {
+    var record = AlarmRecord(dictionary: input)!
+    record.silent = true; record.backend = "notification"
+    let data = try JSONEncoder().encode(["morning": record])
+    let back = try JSONDecoder().decode([String: AlarmRecord].self, from: data)
+    XCTAssertEqual(back["morning"], record)
+  }
 }

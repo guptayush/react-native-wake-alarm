@@ -12,8 +12,17 @@
   alert into the app. Re-copy the template into your app target (the Expo plugin does it
   on the next prebuild); a host still on the old template gets Stop alone, as before.
 - Example app: a "Ringing now" row with an in-app Stop, re-read on every foreground.
+- `AlarmInput.sound` accepts `null` for a silent alarm. Android skips the `MediaPlayer`
+  and keeps everything else (notification, full-screen intent, vibration, events); the
+  iOS notification fallback sets no sound, and AlarmKit plays a bundled zero-amplitude
+  `wake_alarm_silent.caf` because `AlertSound` has no "none" case. `getScheduled()`
+  echoes `sound: null`. Records stored before this release read as not silent.
+- Bridge shape: `sound` stays a string and a boolean `silent` travels beside it, the same
+  way `vibrate` was added in 1.1, so codegen'd hosts keep compiling.
 
 ### Changed
+
+- The `sound` validation message now mentions `null`.
 
 - Docs: `docs/ios.md` now spells out that AlarmKit is full-screen only while locked and a
   banner (or Dynamic Island) while unlocked, whatever app is in front — platform

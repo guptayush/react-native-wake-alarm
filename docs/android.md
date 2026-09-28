@@ -52,6 +52,11 @@ Do Not Disturb filter treats it like the sound rather than like a notification b
 `vibrate: false` skips it and rings audio only. Slots stored before 1.1 carry no flag and
 keep vibrating.
 
+`sound: null` rings silently: `RingService` never builds a `MediaPlayer` for the slot, the
+notification, full-screen intent, Stop action, timeout and events are unchanged, and
+vibration follows `vibrate` as usual. Slots stored before 1.3 carry no flag and keep their
+audio.
+
 ## The ring screen
 
 Call `WakeAlarm.registerRingScreen(MyRingScreen)` once at startup to render your own UI;

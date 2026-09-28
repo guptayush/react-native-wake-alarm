@@ -81,7 +81,7 @@ enum AlarmKitScheduler {
       )
       let configuration = AlarmManager.AlarmConfiguration(
         countdownDuration: nil, schedule: schedule, attributes: attributes,
-        stopIntent: stopIntent, secondaryIntent: openIntent, sound: alertSound(named: record.sound)
+        stopIntent: stopIntent, secondaryIntent: openIntent, sound: record.silent ? silentSound() : alertSound(named: record.sound)
       )
       // schedule(id:) is not an upsert; a duplicate id is refused. Cancel first.
       try? AlarmManager.shared.cancel(id: uuid)
@@ -171,6 +171,16 @@ enum AlarmKitScheduler {
       return .named("\(name).\(ext)")
     }
     return .default
+  }
+
+  // AlertSound has no "none" case, so silence is a bundled zero-amplitude file. On 26.0 the
+  // named-sound bug above means the default tone still plays; docs/ios.md says so.
+  @available(iOS 26.0, *)
+  private static func silentSound() -> ActivityKit.AlertConfiguration.AlertSound {
+    let v = ProcessInfo.processInfo.operatingSystemVersion
+    if v.majorVersion == 26 && v.minorVersion == 0 { return .default }
+    guard Bundle.main.url(forResource: "wake_alarm_silent", withExtension: "caf") != nil else { return .default }
+    return .named("wake_alarm_silent.caf")
   }
   #endif
 }

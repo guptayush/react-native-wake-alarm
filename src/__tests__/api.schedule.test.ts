@@ -36,6 +36,7 @@ describe('schedule', () => {
       title: 'T',
       body: '',
       sound: '',
+      silent: false,
       payloadJson: '{}',
       maxRingMs: 600000,
       vibrate: true,
@@ -45,6 +46,20 @@ describe('schedule', () => {
       backend: 'alarm_manager',
       nextFireAt: 123,
     });
+  });
+
+  it('forwards a silent alarm with sound cleared and silent set', async () => {
+    native.schedule.mockResolvedValue(okNative);
+    await api.schedule({
+      id: 'a',
+      hour: 6,
+      minute: 30,
+      title: 'T',
+      sound: null,
+    });
+    expect(native.schedule).toHaveBeenCalledWith(
+      expect.objectContaining({ sound: '', silent: true })
+    );
   });
 
   it('returns failed/invalid_input instead of throwing for bad input', async () => {
@@ -110,6 +125,7 @@ describe('cancel / cancelAll / getScheduled', () => {
         title: 't',
         body: '',
         sound: '',
+        silent: false,
         payloadJson: '{}',
         maxRingMs: 600000,
         vibrate: false,

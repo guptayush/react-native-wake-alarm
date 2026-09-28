@@ -14,6 +14,7 @@ import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 
@@ -68,7 +69,9 @@ class RingService : Service() {
       stopSelf()
       return
     }
-    player = RingPlayer(this).also { it.start(slot.sound) }
+    player = if (slot.silent) null else RingPlayer(this).also { it.start(slot.sound) }
+    // Derived from the outcome, not the input, so the test proves the player was skipped.
+    lastStartWasSilent = player == null
     if (slot.vibrate) startVibration()
     timeout = Runnable { stopRing("timeout") }.also { handler.postDelayed(it, slot.maxRingMs) }
     WakeLocks.release()
@@ -147,6 +150,11 @@ class RingService : Service() {
     const val ACTION_STOP = "com.wakealarm.RING_STOP"
     const val EXTRA_SLOT = "slot"
     const val EXTRA_SOURCE = "source"
+
+    // Test seam: Robolectric cannot see a MediaPlayer that was never built.
+    @VisibleForTesting
+    @Volatile internal var lastStartWasSilent = false
+      private set
 
     fun start(context: Context, slot: Slot) {
       val intent = Intent(context, RingService::class.java).setAction(ACTION_START).putExtra(EXTRA_SLOT, slot.toJson())

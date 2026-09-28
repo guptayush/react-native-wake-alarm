@@ -17,6 +17,7 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
   const [scheduled, setScheduled] = useState<ScheduledAlarm[]>([]);
   const [last, setLast] = useState<ScheduleResult | null>(null);
   const [vibrate, setVibrate] = useState(true);
+  const [silent, setSilent] = useState(false);
 
   const refresh = () => WakeAlarm.getScheduled().then(setScheduled);
 
@@ -28,7 +29,7 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
       minute: t.getMinutes(),
       title: 'Wake alarm demo',
       body: `Scheduled for ${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`,
-      sound: 'chime',
+      sound: silent ? null : 'chime',
       payload: { source: 'example' },
       vibrate,
     });
@@ -44,7 +45,7 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
       minute: 30,
       days: [1, 2, 3, 4, 5],
       title: 'Weekday 06:30',
-      sound: 'chime',
+      sound: silent ? null : 'chime',
       vibrate,
     });
     setLast(res);
@@ -70,6 +71,8 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
       <View style={styles.row}>
         <Text>Vibrate</Text>
         <Switch value={vibrate} onValueChange={setVibrate} />
+        <Text>Silent</Text>
+        <Switch value={silent} onValueChange={setSilent} />
       </View>
       <View style={styles.row}>
         <Button title="List" onPress={refresh} />
@@ -87,8 +90,8 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
         <Text key={a.id} style={styles.mono}>{`${a.id} ${a.hour}:${String(
           a.minute
         ).padStart(2, '0')} days=${a.days?.join(',') || 'once'} ${a.backend}${
-          a.vibrate === false ? ' silent' : ''
-        } next=${new Date(a.nextFireAt).toLocaleString()}`}</Text>
+          a.vibrate === false ? ' no-vibrate' : ''
+        }${a.sound === null ? ' silent' : ''} next=${new Date(a.nextFireAt).toLocaleString()}`}</Text>
       ))}
     </View>
   );

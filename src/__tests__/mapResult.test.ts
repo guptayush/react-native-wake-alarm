@@ -136,6 +136,7 @@ describe('mapScheduledAlarm', () => {
         title: 't',
         body: '',
         sound: '',
+        silent: false,
         payloadJson: '{}',
         maxRingMs: 1000,
         vibrate: true,
@@ -154,6 +155,7 @@ describe('mapScheduledAlarm', () => {
         title: 't',
         body: '',
         sound: '',
+        silent: false,
         payloadJson: '{"k":"v"}',
         maxRingMs: 1000,
         vibrate: true,
@@ -183,6 +185,7 @@ describe('mapScheduledAlarm', () => {
         title: 't',
         body: 'b',
         sound: 's',
+        silent: false,
         payloadJson: 'not json',
         maxRingMs: 1000,
         vibrate: true,
@@ -213,6 +216,7 @@ describe('mapScheduledAlarm', () => {
         title: 't',
         body: '',
         sound: '',
+        silent: false,
         payloadJson: 'null',
         maxRingMs: 1000,
         vibrate: true,
@@ -239,6 +243,7 @@ describe('mapScheduledAlarm', () => {
         title: 't',
         body: '',
         sound: '',
+        silent: false,
         payloadJson: '"x"',
         maxRingMs: 1000,
         vibrate: true,
@@ -265,6 +270,7 @@ describe('mapScheduledAlarm', () => {
         title: 't',
         body: '',
         sound: '',
+        silent: false,
         payloadJson: '1',
         maxRingMs: 1000,
         vibrate: true,
@@ -291,6 +297,7 @@ describe('mapScheduledAlarm', () => {
         title: 't',
         body: '',
         sound: '',
+        silent: false,
         payloadJson: '[1,2]',
         maxRingMs: 1000,
         vibrate: true,
@@ -317,6 +324,7 @@ describe('mapScheduledAlarm', () => {
         title: 't',
         body: '',
         sound: '',
+        silent: false,
         payloadJson: '{}',
         maxRingMs: 1000,
         vibrate: true,
@@ -334,6 +342,25 @@ describe('mapScheduledAlarm', () => {
       nextFireAt: 9,
       backend: 'alarm_manager',
     });
+  });
+  it('echoes sound: null for a silent row', () => {
+    expect(
+      mapScheduledAlarm({
+        id: 'a',
+        hour: 1,
+        minute: 2,
+        days: [],
+        title: 't',
+        body: '',
+        sound: '',
+        silent: true,
+        payloadJson: '{}',
+        maxRingMs: 1000,
+        vibrate: true,
+        nextFireAt: 9,
+        backend: 'alarm_manager',
+      })
+    ).toMatchObject({ sound: null });
   });
 });
 

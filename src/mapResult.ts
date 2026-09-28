@@ -110,7 +110,8 @@ export function mapScheduledAlarm(n: NativeScheduledAlarm): ScheduledAlarm {
     backend: asBackend(n.backend),
   };
   if (n.body) out.body = n.body;
-  if (n.sound) out.sound = n.sound;
+  if (n.silent) out.sound = null;
+  else if (n.sound) out.sound = n.sound;
   const payload = parsePayload(n.payloadJson);
   if (payload) out.payload = payload;
   return out;

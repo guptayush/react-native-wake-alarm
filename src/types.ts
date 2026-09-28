@@ -9,7 +9,7 @@ export interface AlarmInput {
   days?: Weekday[];
   title: string;
   body?: string;
-  sound?: string;
+  sound?: string | null;
   payload?: Record<string, string>;
   maxRingMs?: number;
   vibrate?: boolean;

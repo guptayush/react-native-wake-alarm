@@ -16,6 +16,9 @@ Pod::Spec.new do |s|
   s.source_files = "ios/**/*.{h,m,mm,swift}"
   s.exclude_files = "ios/Tests/**/*", "ios/Templates/**/*", "ios/Package.swift"
   s.private_header_files = "ios/**/*.h"
+  # Copied into the host's main bundle: both AlarmKit and UNNotificationSound resolve
+  # named sounds from Bundle.main, not from a resource bundle.
+  s.resources = "ios/Resources/*.caf"
   s.swift_version = "5.9"
   s.weak_frameworks = "AlarmKit"
   s.pod_target_xcconfig = {

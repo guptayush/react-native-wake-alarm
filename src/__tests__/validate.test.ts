@@ -13,10 +13,23 @@ describe('validateAlarmInput', () => {
       title: 'Yoga',
       body: '',
       sound: '',
+      silent: false,
       payloadJson: '{}',
       maxRingMs: 600000,
       vibrate: true,
     });
+  });
+
+  it('maps sound: null to an empty sound with the silent flag set', () => {
+    expect(validateAlarmInput({ ...base, sound: null })).toMatchObject({
+      sound: '',
+      silent: true,
+    });
+  });
+
+  it('keeps silent false for the default tone and for a named sound', () => {
+    expect(validateAlarmInput(base).silent).toBe(false);
+    expect(validateAlarmInput({ ...base, sound: 'bell_2' }).silent).toBe(false);
   });
 
   it('accepts an empty sound and a lowercase resource name', () => {
@@ -46,7 +59,12 @@ describe('validateAlarmInput', () => {
       sound: 's',
     });
     expect(out.payloadJson).toBe('{"a":"1","b":"2"}');
-    expect(out).toMatchObject({ maxRingMs: 1000, body: 'b', sound: 's' });
+    expect(out).toMatchObject({
+      maxRingMs: 1000,
+      body: 'b',
+      sound: 's',
+      silent: false,
+    });
   });
 
   it.each([

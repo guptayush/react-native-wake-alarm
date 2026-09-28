@@ -11,6 +11,7 @@ struct AlarmRecord: Codable, Equatable {
   var payloadJson: String
   var maxRingMs: Int
   var vibrate: Bool
+  var silent: Bool
   var backend: String   // "alarm_kit" | "notification"
   var nextFireAt: Int   // epoch ms, cached for getScheduled
 
@@ -25,11 +26,12 @@ struct AlarmRecord: Codable, Equatable {
     self.payloadJson = d["payloadJson"] as? String ?? "{}"
     self.maxRingMs = (d["maxRingMs"] as? Int) ?? Int((d["maxRingMs"] as? Double) ?? 600_000)
     self.vibrate = d["vibrate"] as? Bool ?? true
+    self.silent = d["silent"] as? Bool ?? false
     self.backend = ""
     self.nextFireAt = 0
   }
 
-  // Records persisted by 1.0 have no `vibrate` key; a synthesized decoder would drop the whole store.
+  // Records persisted by 1.0 have no `vibrate` key and records persisted before 1.3 have no `silent` key; a synthesized decoder would drop the whole store.
   init(from decoder: Decoder) throws {
     let c = try decoder.container(keyedBy: CodingKeys.self)
     id = try c.decode(String.self, forKey: .id)
@@ -42,12 +44,13 @@ struct AlarmRecord: Codable, Equatable {
     payloadJson = try c.decode(String.self, forKey: .payloadJson)
     maxRingMs = try c.decode(Int.self, forKey: .maxRingMs)
     vibrate = try c.decodeIfPresent(Bool.self, forKey: .vibrate) ?? true
+    silent = try c.decodeIfPresent(Bool.self, forKey: .silent) ?? false
     backend = try c.decode(String.self, forKey: .backend)
     nextFireAt = try c.decode(Int.self, forKey: .nextFireAt)
   }
 
   var dictionary: [String: Any] {
     ["id": id, "hour": hour, "minute": minute, "days": days, "title": title, "body": body, "sound": sound,
-     "payloadJson": payloadJson, "maxRingMs": maxRingMs, "vibrate": vibrate, "backend": backend, "nextFireAt": nextFireAt]
+     "payloadJson": payloadJson, "maxRingMs": maxRingMs, "vibrate": vibrate, "silent": silent, "backend": backend, "nextFireAt": nextFireAt]
   }
 }

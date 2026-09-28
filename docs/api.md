@@ -96,7 +96,7 @@ interface AlarmInput {
   days?: Weekday[]; // ISO 1 (Monday) – 7 (Sunday); empty or omitted = one-off
   title: string; // non-empty
   body?: string;
-  sound?: string; // bundled resource name, no extension, /^[a-z][a-z0-9_]*$/
+  sound?: string | null; // bundled resource name, no extension, /^[a-z][a-z0-9_]*$/; null = silent
   payload?: Record<string, string>; // string values only
   maxRingMs?: number; // integer 1000–3600000, default 600000 (Android give-up cap)
   vibrate?: boolean; // default true; Android only — iOS stores and returns it, nothing more
@@ -111,6 +111,10 @@ hyphen, an extension) is rejected, not coerced — a bad name fails here, not at
 A non-boolean `vibrate` is rejected the same way. On Android `vibrate: false` rings audio
 only; AlarmKit and the iOS notification fallback have no vibration switch, so on iOS the
 flag is persisted, echoed by `getScheduled()` and otherwise ignored.
+
+`sound: null` asks for a silent alarm: nothing plays on either platform, `vibrate` still
+applies, and `getScheduled()` echoes `sound: null` for that alarm. Omitting `sound` keeps
+the system default tone.
 
 ### `ScheduleResult`
 

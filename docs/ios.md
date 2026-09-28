@@ -73,6 +73,14 @@ Notification sounds are capped at 30 seconds by iOS; AlarmKit has no such cap. O
 exactly **iOS 26.0** a custom sound is never used — the default tone plays regardless of
 what you pass, because custom AlarmKit sounds are broken on that release.
 
+`sound: null` is silent on both paths. The notification fallback sets no sound at all;
+AlarmKit has no "no sound" option, so the pod bundles a zero-amplitude
+`wake_alarm_silent.caf` and plays that. On exactly iOS 26.0 a silent request still plays
+the default tone, for the same reason a custom sound does. CocoaPods copies it into your
+app's main bundle under static linkage (the default); with dynamic `use_frameworks!` it
+lands inside the pod's framework, where AlarmKit cannot find it, and the alarm falls back
+to the default tone.
+
 ## What the system alert shows
 
 AlarmKit presents an alert-only UI: a title, a **Stop** button, an **Open** button, and

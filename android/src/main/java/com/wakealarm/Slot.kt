@@ -14,6 +14,7 @@ data class Slot(
   val maxRingMs: Long,
   val nextFireAt: Long,
   val vibrate: Boolean = true,
+  val silent: Boolean = false,
 ) {
   val key: SlotKey get() = SlotKey(alarmId, weekday)
 
@@ -22,7 +23,7 @@ data class Slot(
     if (weekday != null) put("weekday", weekday)
     put("title", title); put("body", body); put("sound", sound)
     put("payloadJson", payloadJson); put("maxRingMs", maxRingMs); put("nextFireAt", nextFireAt)
-    put("vibrate", vibrate)
+    put("vibrate", vibrate); put("silent", silent)
   }.toString()
 
   companion object {
@@ -35,6 +36,8 @@ data class Slot(
         payloadJson = o.optString("payloadJson", "{}"), maxRingMs = o.getLong("maxRingMs"), nextFireAt = o.getLong("nextFireAt"),
         // Records written before 1.1 have no key and must keep vibrating.
         vibrate = o.optBoolean("vibrate", true),
+        // Records written before 1.3 have no key and must keep ringing audibly.
+        silent = o.optBoolean("silent", false),
       )
     } catch (_: Throwable) { null }
   }

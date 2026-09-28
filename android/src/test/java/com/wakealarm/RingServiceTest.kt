@@ -25,7 +25,8 @@ class RingServiceTest {
 
   @After fun tearDown() { RingState.clear(); PendingActionStore(context).consumeJson() }
 
-  private fun slot(vibrate: Boolean) = Slot("a", 6, 30, null, "T", "", "", "{}", 600_000, 1_800_000_000_000L, vibrate = vibrate)
+  private fun slot(vibrate: Boolean, silent: Boolean = false) =
+    Slot("a", 6, 30, null, "T", "", "", "{}", 600_000, 1_800_000_000_000L, vibrate = vibrate, silent = silent)
 
   private fun start(slot: Slot) {
     val intent = Intent(context, RingService::class.java).setAction(RingService.ACTION_START).putExtra(RingService.EXTRA_SLOT, slot.toJson())
@@ -37,11 +38,19 @@ class RingServiceTest {
     assertEquals("a", RingState.current?.id)
     assertTrue(shadowOf(vibrator).isVibrating)
     assertEquals(AudioAttributes.USAGE_ALARM, shadowOf(vibrator).audioAttributesFromLastVibration!!.usage)
+    assertFalse(RingService.lastStartWasSilent)
   }
 
-  @Test fun aSilentSlotRingsWithoutTouchingTheVibrator() {
+  @Test fun aNonVibratingSlotRingsWithoutTouchingTheVibrator() {
     start(slot(vibrate = false))
     assertEquals("a", RingState.current?.id)
     assertFalse(shadowOf(vibrator).isVibrating)
+  }
+
+  @Test fun aSilentSlotStillVibratesAndPublishesTheSession() {
+    start(slot(vibrate = true, silent = true))
+    assertEquals("a", RingState.current?.id)
+    assertTrue(shadowOf(vibrator).isVibrating)
+    assertTrue(RingService.lastStartWasSilent)
   }
 }

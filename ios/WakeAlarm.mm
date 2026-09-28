@@ -42,6 +42,7 @@
     @"title": input.title(), @"body": input.body(), @"sound": input.sound(),
     @"payloadJson": input.payloadJson(), @"maxRingMs": @((int)input.maxRingMs()), @"vibrate": @(input.vibrate()),
     @"silent": @(input.silent()),
+    @"stopButtonTitle": input.stopButtonTitle(), @"openButtonTitle": input.openButtonTitle(),
   };
   [_impl schedule:dict completion:^(NSDictionary<NSString *, id> *result) { resolve(result); }];
 }

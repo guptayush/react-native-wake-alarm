@@ -84,7 +84,9 @@ to the default tone.
 ## What the system alert shows
 
 AlarmKit presents an alert-only UI: a title, a **Stop** button, an **Open** button, and
-a tint colour. Locked, it takes the whole screen; unlocked, it is a banner (or the
+a tint colour. Both labels can be overridden per alarm with `stopButtonTitle` and
+`openButtonTitle`; AlarmKit draws them only on the lock-screen alert, the unlocked banner
+shows the two icons alone. Locked, it takes the whole screen; unlocked, it is a banner (or the
 Dynamic Island) whatever app is in front, including yours — the same as the Clock app,
 and there is no API to force a full-screen alert while the phone is unlocked. The alert
 body is not tappable: that would need a widget extension, which is out of scope for this

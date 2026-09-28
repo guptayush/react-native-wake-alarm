@@ -23,6 +23,13 @@ class SlotTest {
     assertNull(Slot.fromJson("not json"))
     assertNull(Slot.fromJson("{\"id\":\"x\"}"))
   }
+  @Test fun buttonTitlesRoundTripAndDefaultToEmptyForRecordsWithoutTheKeys() {
+    val titled = slot.copy(stopButtonTitle = "Dismiss", openButtonTitle = "Open app")
+    assertEquals(titled, Slot.fromJson(titled.toJson()))
+    val legacy = org.json.JSONObject(slot.toJson()).apply { remove("stopButtonTitle"); remove("openButtonTitle") }.toString()
+    assertEquals("", Slot.fromJson(legacy)!!.stopButtonTitle)
+    assertEquals("", Slot.fromJson(legacy)!!.openButtonTitle)
+  }
   @Test fun silentRoundTripsAndDefaultsToFalseForRecordsWithoutTheKey() {
     assertEquals(true, Slot.fromJson(slot.copy(silent = true).toJson())!!.silent)
     val legacy = org.json.JSONObject(slot.toJson()).apply { remove("silent") }.toString()

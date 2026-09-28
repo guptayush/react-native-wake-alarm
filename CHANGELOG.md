@@ -11,6 +11,11 @@
   never tappable — that needs a widget extension — so this is the only route from the
   alert into the app. Re-copy the template into your app target (the Expo plugin does it
   on the next prebuild); a host still on the old template gets Stop alone, as before.
+- `AlarmInput.stopButtonTitle` and `openButtonTitle` relabel the two AlarmKit alert
+  buttons per alarm (defaults "Stop" and "Open", 1–32 characters after trimming, else
+  `failed / invalid_input`). Labels show on the lock-screen alert only; the unlocked
+  banner is icons-only. `getScheduled()` echoes a title when one was set. Android stores
+  and echoes them for parity. Records stored before this release read as unset.
 - Example app: a "Ringing now" row with an in-app Stop, re-read on every foreground.
 - `AlarmInput.sound` accepts `null` for a silent alarm. Android skips the `MediaPlayer`
   and keeps everything else (notification, full-screen intent, vibration, events); the

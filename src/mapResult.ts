@@ -114,6 +114,8 @@ export function mapScheduledAlarm(n: NativeScheduledAlarm): ScheduledAlarm {
   else if (n.sound) out.sound = n.sound;
   const payload = parsePayload(n.payloadJson);
   if (payload) out.payload = payload;
+  if (n.stopButtonTitle) out.stopButtonTitle = n.stopButtonTitle;
+  if (n.openButtonTitle) out.openButtonTitle = n.openButtonTitle;
   return out;
 }
 

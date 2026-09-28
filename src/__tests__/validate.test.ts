@@ -17,7 +17,42 @@ describe('validateAlarmInput', () => {
       payloadJson: '{}',
       maxRingMs: 600000,
       vibrate: true,
+      stopButtonTitle: '',
+      openButtonTitle: '',
     });
+  });
+
+  it('defaults both button titles to empty strings (native uses Stop / Open)', () => {
+    expect(validateAlarmInput(base)).toMatchObject({
+      stopButtonTitle: '',
+      openButtonTitle: '',
+    });
+  });
+
+  it('passes trimmed button titles through', () => {
+    expect(
+      validateAlarmInput({
+        ...base,
+        stopButtonTitle: ' Dismiss ',
+        openButtonTitle: 'Open app',
+      })
+    ).toMatchObject({
+      stopButtonTitle: 'Dismiss',
+      openButtonTitle: 'Open app',
+    });
+  });
+
+  it.each([
+    ['stopButtonTitle', 42],
+    ['stopButtonTitle', '   '],
+    ['stopButtonTitle', 'x'.repeat(33)],
+    ['openButtonTitle', 42],
+    ['openButtonTitle', '   '],
+    ['openButtonTitle', 'x'.repeat(33)],
+  ])('rejects a bad %s', (field, value) => {
+    expect(() =>
+      validateAlarmInput({ ...base, [field]: value } as never)
+    ).toThrow(WakeAlarmInputError);
   });
 
   it('maps sound: null to an empty sound with the silent flag set', () => {

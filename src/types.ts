@@ -13,6 +13,10 @@ export interface AlarmInput {
   payload?: Record<string, string>;
   maxRingMs?: number;
   vibrate?: boolean;
+  /** iOS 26+ AlarmKit alert only: label of the Stop button. Default "Stop". 1–32 characters. */
+  stopButtonTitle?: string;
+  /** iOS 26+ AlarmKit alert only: label of the Open button. Default "Open". 1–32 characters. */
+  openButtonTitle?: string;
 }
 
 export type Backend = 'alarm_manager' | 'alarm_kit' | 'notification';

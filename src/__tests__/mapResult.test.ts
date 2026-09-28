@@ -343,6 +343,44 @@ describe('mapScheduledAlarm', () => {
       backend: 'alarm_manager',
     });
   });
+  it('echoes button titles only when the row carries them', () => {
+    const row = {
+      id: 'a',
+      hour: 1,
+      minute: 2,
+      days: [],
+      title: 't',
+      body: '',
+      sound: '',
+      silent: false,
+      payloadJson: '{}',
+      maxRingMs: 1000,
+      vibrate: true,
+      nextFireAt: 9,
+      backend: 'alarm_kit',
+    };
+    const plain = mapScheduledAlarm({
+      ...row,
+      stopButtonTitle: '',
+      openButtonTitle: '',
+    });
+    expect(plain).not.toHaveProperty('stopButtonTitle');
+    expect(plain).not.toHaveProperty('openButtonTitle');
+    expect(
+      mapScheduledAlarm({
+        ...row,
+        stopButtonTitle: 'Dismiss',
+        openButtonTitle: 'Open app',
+      })
+    ).toMatchObject({
+      stopButtonTitle: 'Dismiss',
+      openButtonTitle: 'Open app',
+    });
+    // A row from a native side that predates the fields (Android) is still fine.
+    expect(mapScheduledAlarm(row as never)).not.toHaveProperty(
+      'stopButtonTitle'
+    );
+  });
   it('echoes sound: null for a silent row', () => {
     expect(
       mapScheduledAlarm({

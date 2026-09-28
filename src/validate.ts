@@ -22,6 +22,24 @@ export class WakeAlarmInputError extends Error {
 const isInt = (n: unknown, lo: number, hi: number): n is number =>
   typeof n === 'number' && Number.isInteger(n) && n >= lo && n <= hi;
 
+const MAX_BUTTON_TITLE = 32;
+// AlarmKit renders the label only on the lock-screen alert; the unlocked banner shows the
+// icon alone, so a long label buys nothing. Empty means "use the default" on the native side.
+function buttonTitle(field: string, value: unknown): string {
+  if (value === undefined) return '';
+  if (typeof value !== 'string') {
+    throw new WakeAlarmInputError(field, 'must be a string');
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > MAX_BUTTON_TITLE) {
+    throw new WakeAlarmInputError(
+      field,
+      `must be 1–${MAX_BUTTON_TITLE} characters after trimming`
+    );
+  }
+  return trimmed;
+}
+
 export function validateAlarmInput(input: AlarmInput): NativeAlarmInput {
   if (typeof input.id !== 'string' || !ID_PATTERN.test(input.id)) {
     throw new WakeAlarmInputError('id', 'must match /^[A-Za-z0-9_.-]{1,64}$/');
@@ -70,6 +88,8 @@ export function validateAlarmInput(input: AlarmInput): NativeAlarmInput {
   if (typeof vibrate !== 'boolean') {
     throw new WakeAlarmInputError('vibrate', 'must be a boolean');
   }
+  const stopButtonTitle = buttonTitle('stopButtonTitle', input.stopButtonTitle);
+  const openButtonTitle = buttonTitle('openButtonTitle', input.openButtonTitle);
   return {
     id: input.id,
     hour: input.hour,
@@ -82,5 +102,7 @@ export function validateAlarmInput(input: AlarmInput): NativeAlarmInput {
     payloadJson: JSON.stringify(sortedPayload),
     maxRingMs,
     vibrate,
+    stopButtonTitle,
+    openButtonTitle,
   };
 }

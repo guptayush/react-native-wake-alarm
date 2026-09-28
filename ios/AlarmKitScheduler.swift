@@ -63,13 +63,16 @@ enum AlarmKitScheduler {
       let recurrence: Alarm.Schedule.Relative.Recurrence = weekdays.isEmpty ? .never : .weekly(weekdays)
       let schedule = Alarm.Schedule.relative(.init(time: time, repeats: recurrence))
 
-      let stopButton = AlarmButton(text: "Stop", textColor: .white, systemImageName: "stop.circle")
+      // Labels are only drawn on the lock-screen alert; the unlocked banner shows the icons alone.
+      let stopTitle = record.stopButtonTitle.isEmpty ? "Stop" : record.stopButtonTitle
+      let openTitle = record.openButtonTitle.isEmpty ? "Open" : record.openButtonTitle
+      let stopButton = AlarmButton(text: LocalizedStringResource(stringLiteral: stopTitle), textColor: .white, systemImageName: "stop.circle")
       // The alert body itself is not tappable without a widget extension, so "Open" is the only way
       // from the alert into the app. It is a custom secondary button whose intent runs in the
       // foreground; the alarm keeps ringing until Stop here or stopRinging() in the app.
       let stopIntent = WakeAlarmBridge.shared.stopIntentFactory?(record.id) as? (any LiveActivityIntent)
       let openIntent = WakeAlarmBridge.shared.openIntentFactory?(record.id) as? (any LiveActivityIntent)
-      let openButton = openIntent == nil ? nil : AlarmButton(text: "Open app", textColor: .white, systemImageName: "arrow.up.forward.app")
+      let openButton = openIntent == nil ? nil : AlarmButton(text: LocalizedStringResource(stringLiteral: openTitle), textColor: .white, systemImageName: "arrow.up.forward.app")
       let alert = AlarmPresentation.Alert(
         title: LocalizedStringResource(stringLiteral: record.title), stopButton: stopButton,
         secondaryButton: openButton, secondaryButtonBehavior: openButton == nil ? nil : .custom

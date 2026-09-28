@@ -15,6 +15,9 @@ data class Slot(
   val nextFireAt: Long,
   val vibrate: Boolean = true,
   val silent: Boolean = false,
+  // iOS AlarmKit alert labels; stored and echoed by getScheduled() for parity, unused on Android.
+  val stopButtonTitle: String = "",
+  val openButtonTitle: String = "",
 ) {
   val key: SlotKey get() = SlotKey(alarmId, weekday)
 
@@ -24,6 +27,7 @@ data class Slot(
     put("title", title); put("body", body); put("sound", sound)
     put("payloadJson", payloadJson); put("maxRingMs", maxRingMs); put("nextFireAt", nextFireAt)
     put("vibrate", vibrate); put("silent", silent)
+    put("stopButtonTitle", stopButtonTitle); put("openButtonTitle", openButtonTitle)
   }.toString()
 
   companion object {
@@ -38,6 +42,8 @@ data class Slot(
         vibrate = o.optBoolean("vibrate", true),
         // Records written before 1.3 have no key and must keep ringing audibly.
         silent = o.optBoolean("silent", false),
+        stopButtonTitle = o.optString("stopButtonTitle", ""),
+        openButtonTitle = o.optString("openButtonTitle", ""),
       )
     } catch (_: Throwable) { null }
   }

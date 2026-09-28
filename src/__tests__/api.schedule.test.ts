@@ -40,12 +40,32 @@ describe('schedule', () => {
       payloadJson: '{}',
       maxRingMs: 600000,
       vibrate: true,
+      stopButtonTitle: '',
+      openButtonTitle: '',
     });
     expect(res).toEqual({
       status: 'ok',
       backend: 'alarm_manager',
       nextFireAt: 123,
     });
+  });
+
+  it('forwards custom alert button titles', async () => {
+    native.schedule.mockResolvedValue(okNative);
+    await api.schedule({
+      id: 'a',
+      hour: 6,
+      minute: 30,
+      title: 'T',
+      stopButtonTitle: 'Dismiss',
+      openButtonTitle: 'Open app',
+    });
+    expect(native.schedule).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stopButtonTitle: 'Dismiss',
+        openButtonTitle: 'Open app',
+      })
+    );
   });
 
   it('forwards a silent alarm with sound cleared and silent set', async () => {

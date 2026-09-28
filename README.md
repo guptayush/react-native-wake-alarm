@@ -209,6 +209,8 @@ covers the Play Console declarations you must file.
 | `payload` | `Record<string, string>` | no | `{}` | String values only; returned on the ringing alarm and in events. |
 | `maxRingMs` | `number` | no | `600000` | Android give-up cap, 1000–3600000 ms. |
 | `vibrate` | `boolean` | no | `true` | Android: vibrate on the alarm usage while ringing. iOS: stored and echoed, no control over the system alert. |
+| `stopButtonTitle` | `string` | no | `Stop` | iOS 26+ AlarmKit alert only: label of the Stop button, 1–32 characters. Shown on the lock-screen alert; the unlocked banner shows icons only. |
+| `openButtonTitle` | `string` | no | `Open` | iOS 26+ AlarmKit alert only: label of the Open button, 1–32 characters. Same display rule. |
 
 Resolves to a `ScheduleResult`: `ok`, `ok_degraded` with `reason` `no_full_screen_intent` \|
 `notification_fallback` \| `no_notification_permission`, or `failed` with `reason`

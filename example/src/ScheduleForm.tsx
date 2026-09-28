@@ -18,6 +18,7 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
   const [last, setLast] = useState<ScheduleResult | null>(null);
   const [vibrate, setVibrate] = useState(true);
   const [silent, setSilent] = useState(false);
+  const [customLabels, setCustomLabels] = useState(false);
 
   const refresh = () => WakeAlarm.getScheduled().then(setScheduled);
 
@@ -32,6 +33,10 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
       sound: silent ? null : 'chime',
       payload: { source: 'example' },
       vibrate,
+      ...(customLabels && {
+        stopButtonTitle: 'Dismiss',
+        openButtonTitle: 'Open app',
+      }),
     });
     setLast(res);
     onLog(`schedule -> ${JSON.stringify(res)}`);
@@ -73,6 +78,10 @@ export function ScheduleForm({ onLog }: { onLog: (line: string) => void }) {
         <Switch value={vibrate} onValueChange={setVibrate} />
         <Text>Silent</Text>
         <Switch value={silent} onValueChange={setSilent} />
+      </View>
+      <View style={styles.row}>
+        <Text>Custom alert labels (iOS): Dismiss / Open app</Text>
+        <Switch value={customLabels} onValueChange={setCustomLabels} />
       </View>
       <View style={styles.row}>
         <Button title="List" onPress={refresh} />

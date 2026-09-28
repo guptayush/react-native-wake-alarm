@@ -31,6 +31,35 @@ final class AlarmRecordTests: XCTestCase {
     XCTAssertEqual(back["morning"], record)
   }
 
+  func testButtonTitlesDefaultToEmptyAndRoundTripThroughTheDictionary() {
+    let record = AlarmRecord(dictionary: input)!
+    XCTAssertEqual(record.stopButtonTitle, "")
+    XCTAssertEqual(record.openButtonTitle, "")
+    var titled = input; titled["stopButtonTitle"] = "Dismiss"; titled["openButtonTitle"] = "Open app"
+    let t = AlarmRecord(dictionary: titled)!
+    XCTAssertEqual(t.stopButtonTitle, "Dismiss")
+    XCTAssertEqual(t.openButtonTitle, "Open app")
+    XCTAssertEqual(t.dictionary["stopButtonTitle"] as? String, "Dismiss")
+    XCTAssertEqual(t.dictionary["openButtonTitle"] as? String, "Open app")
+  }
+
+  func testDecodesARecordWithoutTheButtonTitleKeys() throws {
+    let legacy = """
+    {"morning":{"id":"morning","hour":6,"minute":30,"days":[1],"title":"Yoga","body":"","sound":"","payloadJson":"{}","maxRingMs":600000,"vibrate":true,"silent":false,"backend":"alarm_kit","nextFireAt":1800000000000}}
+    """
+    let decoded = try JSONDecoder().decode([String: AlarmRecord].self, from: Data(legacy.utf8))
+    XCTAssertEqual(decoded["morning"]!.stopButtonTitle, "")
+    XCTAssertEqual(decoded["morning"]!.openButtonTitle, "")
+  }
+
+  func testEncodesButtonTitlesSoTheNextDecodeKeepsThem() throws {
+    var record = AlarmRecord(dictionary: input)!
+    record.stopButtonTitle = "Dismiss"; record.openButtonTitle = "Open app"; record.backend = "alarm_kit"
+    let data = try JSONEncoder().encode(["morning": record])
+    let back = try JSONDecoder().decode([String: AlarmRecord].self, from: data)
+    XCTAssertEqual(back["morning"], record)
+  }
+
   func testMissingRequiredFieldsRejectTheDictionary() {
     XCTAssertNil(AlarmRecord(dictionary: ["id": "x"]))
   }

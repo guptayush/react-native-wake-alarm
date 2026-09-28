@@ -100,6 +100,8 @@ interface AlarmInput {
   payload?: Record<string, string>; // string values only
   maxRingMs?: number; // integer 1000–3600000, default 600000 (Android give-up cap)
   vibrate?: boolean; // default true; Android only — iOS stores and returns it, nothing more
+  stopButtonTitle?: string; // iOS 26+ AlarmKit alert only; default "Stop"; 1–32 chars after trimming
+  openButtonTitle?: string; // iOS 26+ AlarmKit alert only; default "Open"; 1–32 chars after trimming
 }
 ```
 
@@ -111,6 +113,13 @@ hyphen, an extension) is rejected, not coerced — a bad name fails here, not at
 A non-boolean `vibrate` is rejected the same way. On Android `vibrate: false` rings audio
 only; AlarmKit and the iOS notification fallback have no vibration switch, so on iOS the
 flag is persisted, echoed by `getScheduled()` and otherwise ignored.
+
+`stopButtonTitle` and `openButtonTitle` relabel the two buttons on the iOS 26+ AlarmKit
+alert. Each is trimmed and must then be 1–32 characters, else `failed / invalid_input`;
+omit one to keep its default ("Stop" / "Open"). AlarmKit draws the labels only on the
+lock-screen alert — the unlocked banner shows the icons alone — and the notification
+fallback below iOS 26 keeps its fixed "Stop" action. Android stores and echoes them via
+`getScheduled()`, nothing more. `getScheduled()` omits a title that was not set.
 
 `sound: null` asks for a silent alarm: nothing plays on either platform, `vibrate` still
 applies, and `getScheduled()` echoes `sound: null` for that alarm. Omitting `sound` keeps

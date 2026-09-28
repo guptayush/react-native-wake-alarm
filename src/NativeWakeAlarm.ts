@@ -13,6 +13,8 @@ export type NativeAlarmInput = {
   payloadJson: string;
   maxRingMs: number;
   vibrate: boolean;
+  stopButtonTitle: string;
+  openButtonTitle: string;
 };
 
 export type NativeScheduleResult = {
@@ -37,6 +39,8 @@ export type NativeScheduledAlarm = {
   vibrate: boolean;
   nextFireAt: number;
   backend: string;
+  stopButtonTitle?: string;
+  openButtonTitle?: string;
 };
 
 export type NativePermissionStatus = {

@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- iOS 26+: the AlarmKit alert gains an **Open** button next to **Stop**. It runs the new
+  `WakeAlarmOpenIntent` from `ios/Templates/WakeAlarmIntents.swift` in the foreground, so
+  the app launches or resumes (after unlock if needed) while the alarm keeps ringing; read
+  `getRinging()` when the app becomes active and offer `stopRinging()`. The alert body was
+  never tappable — that needs a widget extension — so this is the only route from the
+  alert into the app. Re-copy the template into your app target (the Expo plugin does it
+  on the next prebuild); a host still on the old template gets Stop alone, as before.
+- Example app: a "Ringing now" row with an in-app Stop, re-read on every foreground.
+
+### Changed
+
+- Docs: `docs/ios.md` now spells out that AlarmKit is full-screen only while locked and a
+  banner (or Dynamic Island) while unlocked, whatever app is in front — platform
+  behaviour, the same as the Clock app.
+
 ## 1.2.0
 
 ### Added

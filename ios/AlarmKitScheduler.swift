@@ -64,16 +64,24 @@ enum AlarmKitScheduler {
       let schedule = Alarm.Schedule.relative(.init(time: time, repeats: recurrence))
 
       let stopButton = AlarmButton(text: "Stop", textColor: .white, systemImageName: "stop.circle")
-      let alert = AlarmPresentation.Alert(title: LocalizedStringResource(stringLiteral: record.title), stopButton: stopButton, secondaryButton: nil, secondaryButtonBehavior: nil)
+      // The alert body itself is not tappable without a widget extension, so "Open" is the only way
+      // from the alert into the app. It is a custom secondary button whose intent runs in the
+      // foreground; the alarm keeps ringing until Stop here or stopRinging() in the app.
+      let stopIntent = WakeAlarmBridge.shared.stopIntentFactory?(record.id) as? (any LiveActivityIntent)
+      let openIntent = WakeAlarmBridge.shared.openIntentFactory?(record.id) as? (any LiveActivityIntent)
+      let openButton = openIntent == nil ? nil : AlarmButton(text: "Open app", textColor: .white, systemImageName: "arrow.up.forward.app")
+      let alert = AlarmPresentation.Alert(
+        title: LocalizedStringResource(stringLiteral: record.title), stopButton: stopButton,
+        secondaryButton: openButton, secondaryButtonBehavior: openButton == nil ? nil : .custom
+      )
       let attributes = AlarmAttributes<WakeAlarmMetadata>(
         presentation: AlarmPresentation(alert: alert),
         metadata: WakeAlarmMetadata(alarmId: record.id),
         tintColor: Color(red: tint.red, green: tint.green, blue: tint.blue)
       )
-      let stopIntent = WakeAlarmBridge.shared.stopIntentFactory?(record.id) as? (any LiveActivityIntent)
       let configuration = AlarmManager.AlarmConfiguration(
         countdownDuration: nil, schedule: schedule, attributes: attributes,
-        stopIntent: stopIntent, secondaryIntent: nil, sound: alertSound(named: record.sound)
+        stopIntent: stopIntent, secondaryIntent: openIntent, sound: alertSound(named: record.sound)
       )
       // schedule(id:) is not an upsert; a duplicate id is refused. Cancel first.
       try? AlarmManager.shared.cancel(id: uuid)

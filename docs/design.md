@@ -312,9 +312,14 @@ target and one binary serves every supported version.
   mapping is derivable inside an App Intent during cold start with no table.
 - Schedule: `Alarm.Schedule.relative(time, repeats: .never | .weekly(days))`.
   Relative, not fixed, so timezone and DST changes heal themselves.
-- Presentation: alert only, `AlarmPresentation.Alert(title, stopButton)`,
-  tint colour configurable at module level. No countdown presentation, which
-  would require a widget extension.
+- Presentation: alert only, `AlarmPresentation.Alert(title, stopButton,
+  secondaryButton: Open, .custom)`, tint colour configurable at module level.
+  The alert body is not tappable without a widget extension, so Open (a
+  foreground `LiveActivityIntent` from the host template) is the only route
+  from the alert into the app; it leaves the alarm ringing and records
+  nothing — `getRinging()` is the source of truth. Omitted when the host has
+  no open intent installed. No countdown presentation, which would require a
+  widget extension.
 - Sound: `.named("<sound>.caf")` if the file is in the main bundle, else
   `.default`. On exactly iOS 26.0, `.default` always, because custom sounds
   are broken on that release.
@@ -367,8 +372,9 @@ holds one action, latest write wins.
 App Intents declared inside a static-library pod are reported unresolvable by
 the AppIntents runtime at run time even though build-time metadata looks
 correct. The package therefore ships `WakeAlarmIntents.swift` (a
-`LiveActivityIntent` Stop intent that calls the bridge) for the host to add to
-its app target, plus a one-line registration in `AppDelegate`. The Expo plugin
+`LiveActivityIntent` Stop intent that calls the bridge, and a foreground Open
+intent behind the alert's secondary button) for the host to add to its app
+target, plus a one-line registration in `AppDelegate`. The Expo plugin
 injects both. Implementation task: verify whether a framework-style pod
 (`use_frameworks!`) resolves the intent; if it does on every supported
 CocoaPods integration, remove the host step.

@@ -22,6 +22,15 @@ import Foundation
   }
   private var _stopIntentFactory: ((String) -> Any?)?
 
+  /// Installed by the host app alongside stopIntentFactory. Returns the AppIntent behind the alert's
+  /// "Open" button, which brings the app to the foreground while the alarm keeps ringing. Absent on a
+  /// host still on the older template, in which case the alert has only Stop.
+  public var openIntentFactory: ((String) -> Any?)? {
+    get { lock.lock(); defer { lock.unlock() }; return _openIntentFactory }
+    set { lock.lock(); defer { lock.unlock() }; _openIntentFactory = newValue }
+  }
+  private var _openIntentFactory: ((String) -> Any?)?
+
   private override init() {}
 
   /// Always parks the latest action for consumePendingAction() and always forwards it to the module.

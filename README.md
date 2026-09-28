@@ -154,8 +154,9 @@ function RingScreen({ alarm, stop }: RingScreenProps) {
 WakeAlarm.registerRingScreen(RingScreen); // once, at startup
 ```
 
-On iOS the ringing surface is Apple's; use the events and the pending action to open your own
-screen inside the app when the user taps the alert.
+On iOS the ringing surface is Apple's. The alert has **Stop** and, on iOS 26+, **Open**, which
+brings your app to the foreground while the alarm keeps ringing: read `getRinging()` when the app
+becomes active and show your own screen with a `stopRinging()` button.
 
 ## Platform support
 
@@ -169,6 +170,7 @@ screen inside the app when the user taps the alert.
 | Custom sound | ✅ `res/raw` | ✅ bundle | ✅ bundle |
 | Vibration | ✅ | system | system |
 | Stop from the alert | ✅ | ✅ | ✅ action |
+| Open the app from the alert | ✅ tap | ✅ Open button, keeps ringing | ✅ tap, stops |
 | Survives reboot | ✅ after first unlock | ✅ | ✅ |
 | Snooze | not yet | not yet | not yet |
 

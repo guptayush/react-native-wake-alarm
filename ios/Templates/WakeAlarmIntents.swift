@@ -27,6 +27,23 @@ struct WakeAlarmStopIntent: LiveActivityIntent {
     return .result()
   }
 }
+
+/// Behind the alert's "Open" button. Runs in the foreground, so the system brings the app up
+/// (unlocking first if needed). The alarm keeps ringing: read WakeAlarm.getRinging() and show
+/// your own screen with a stopRinging() button, or let the user press Stop on the alert.
+@available(iOS 26.0, *)
+struct WakeAlarmOpenIntent: LiveActivityIntent {
+  static var title: LocalizedStringResource = "Open Alarm"
+  static var isDiscoverable: Bool = false
+  static var supportedModes: IntentModes { .foreground }
+
+  @Parameter(title: "Alarm ID") var alarmId: String
+
+  init() {}
+  init(alarmId: String) { self.alarmId = alarmId }
+
+  func perform() async throws -> some IntentResult { .result() }
+}
 #endif
 
 public enum WakeAlarmIntentsRegistration {
@@ -35,6 +52,7 @@ public enum WakeAlarmIntentsRegistration {
     #if canImport(AlarmKit)
     if #available(iOS 26.0, *) {
       WakeAlarmBridge.shared.stopIntentFactory = { id in WakeAlarmStopIntent(alarmId: id) }
+      WakeAlarmBridge.shared.openIntentFactory = { id in WakeAlarmOpenIntent(alarmId: id) }
     }
     #endif
   }

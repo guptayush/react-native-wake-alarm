@@ -75,10 +75,20 @@ what you pass, because custom AlarmKit sounds are broken on that release.
 
 ## What the system alert shows
 
-AlarmKit presents an alert-only UI: a title, a **Stop** button, and a tint colour. There
-is no countdown presentation and no custom media — that would require a widget
-extension, which is out of scope for this library. The notification fallback shows a
-standard time-sensitive banner with a **Stop** action.
+AlarmKit presents an alert-only UI: a title, a **Stop** button, an **Open** button, and
+a tint colour. Locked, it takes the whole screen; unlocked, it is a banner (or the
+Dynamic Island) whatever app is in front, including yours — the same as the Clock app,
+and there is no API to force a full-screen alert while the phone is unlocked. The alert
+body is not tappable: that would need a widget extension, which is out of scope for this
+library, so **Open** is the way into the app. It runs `WakeAlarmOpenIntent` from the
+intents template in the foreground, which launches or resumes the app (after unlock if
+needed) and leaves the alarm ringing. Read `getRinging()` when the app becomes active
+and show your own screen with a `stopRinging()` button; the alert's **Stop** also still
+works. **Open** is only shown when the host installed the template that defines the
+intent — a host on the pre-1.3 template gets Stop alone. There is no countdown
+presentation and no custom media. The notification fallback shows a standard
+time-sensitive banner with a **Stop** action; tapping its body opens the app and stops
+it, as for any notification.
 
 `vibrate` is accepted and echoed back by `getScheduled()` for parity with Android, but
 neither AlarmKit nor the notification fallback exposes vibration control — the system
@@ -130,7 +140,9 @@ schedule again afterwards to restore it.
 
 Every `fired` and `stopped` — from AlarmKit, the Stop App Intent, a notification
 response or `stopRinging()` — is parked for `consumePendingAction()` **and** emitted;
-a live JS listener clears the parked copy on delivery. The slot holds one action.
+a live JS listener clears the parked copy on delivery. The slot holds one action. The
+Open App Intent records nothing: the alarm is still ringing, so `getRinging()` is the
+source of truth once the app is active.
 
 `getRinging()` on iOS reads an in-memory map of alerting AlarmKit alarms kept by the
 update watcher and seeded once when the module loads, plus the cached record for title,
